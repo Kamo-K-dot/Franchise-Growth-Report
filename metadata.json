@@ -1,0 +1,6 @@
+{
+  "name": "Alberton Growth Report",
+  "description": "Interactive CFO & COO Growth Report Dashboard for Alberton Franchisee operations, tracking acquisition funnel, revenue projections, and communications.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

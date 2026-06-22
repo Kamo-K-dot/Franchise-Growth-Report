@@ -1,0 +1,37 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&family=Bebas+Neue&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --font-sans: "Poppins", ui-sans-serif, system-ui, sans-serif;
+  --font-bebas: "Bebas Neue", sans-serif;
+  
+  --color-brand-blue: #313BF5;
+  --color-brand-zaffre: #0914B0;
+  --color-brand-onyx: #3A3936;
+  --color-brand-coral: #585A68;
+  --color-brand-white: #FFFFFF;
+  --color-brand-cheddar: #FFB100;
+  --color-brand-pink: #E8596D;
+  --color-brand-popstar: #BC465A;
+}
+
+@layer base {
+  body {
+    background-color: #0F101A;
+    color: #F0F1F5;
+  }
+}
+
+/* Custom animated spin slowing */
+.animate-spin-slow {
+  animation: spin 8s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
