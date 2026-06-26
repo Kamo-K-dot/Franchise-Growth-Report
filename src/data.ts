@@ -192,6 +192,164 @@ export const LEAD_BOARD_DATA_COMPACT = [
   [11, "Tasneem Moosa", "Hamza Moosa", "9", "Waterstone College", "Meyersdal", "no", ["Camp Registered"]]
 ];
 
+export const CAMBRIDGE_LEADS_DATA = [
+  // Incoming Leads (Section 1) - Mapped to Category 1 (Contacted / Waiting) by default or special categories
+  [1, "Renelyn Daróczi", "Penelope Daroczi", "6", "Bellbird Primary", "Cb223FP", "yes", []],
+  [1, "natashia britto", "Kaiaan Britto-Tavadia", "9", "cheveley Primary school", "cheveley Cambridgeshire", "yes", []],
+  [1, "Maria Alex", "Joshua Jacob", "5", "st laurence", "cb4", "yes", []],
+  [1, "Cristine Vanessa Espiritu", "Vaughn Manrique", "10", "WCPS", "Waterbeach", "yes", []],
+  [1, "ANI", "Musa Khan", "11", "Queen Emma", "Petersfield", "yes", []],
+  [1, "Asama Weerasekara", "oshane weerasekara", "13", "Martin beacon academy Cambridge", "Cambridge", "yes", []],
+  [1, "Marie Sengonzi", "Celeste Maidment", "8", "pathfinder", "Cambridge", "yes", []],
+  [1, "Özlem Özmen Öztürker", "Can ozturker", "8", "Hardwick community primary", "Cambourne", "no", []],
+  [1, "Fiona Campos", "Santhosh Patrick", "13", "SVC", "Swavesey", "yes", []],
+  [1, "Glenda O'Hara", "Aoife O'Hara", "6", "Bewicj Bridge Primary School", "Cherry Hinton", "yes", []],
+  [1, "Elaine Panter", "Vittoria Brown-Panter", "5", "St Mary’s junior school", "Cambridge", "yes", []],
+  [1, "Daria Anna Kujawska", "Leon Hansen", "11", "st Bede’s", "Chesterton East", "yes", []],
+  [1, "Christina Armyra", "Theodora Mavrodakou", "5", "Bushmead Primary School", "St Neots", "yes", []],
+  [1, "Niluka Pathinayake", "Kavira Kapuge", "11", "Heritage", "Royston", "yes", []],
+  [1, "Alex", "Daniella", "7", "pathfinder northstowe", "northstowe", "yes", []],
+  [1, "chandra", "ojas", "6", "galfrid", "cb5", "yes", []],
+  [1, "Teresa Leone", "Joseph john Leone Rose", "8", "Park st primary school", "Chesterton cambridge", "yes", []],
+  [1, "Ayman A Awad", "A", "10", "M r", "Can", "no", []],
+  [1, "Roman", "Roma", "13", "N/a", "Huntingdon", "yes", []],
+  [1, "Maimuna Dibba", "Nayla Ine", "7", "Trumpington Park Primary", "Trumpington", "no", []],
+  [1, "Hannah Merriman", "Amber Merriman", "9", "Fulbourn primary", "Fulbourn", "yes", []],
+  [1, "Ned Baring", "Finn Baring", "11", "University of Cambridge Primary", "Cambridge", "no", []],
+  [1, "Abi A", "Ari A", "5", "Cambridge", "Cambridge", "yes", []],
+  [1, "Louisa.", "Felicity turner", "9", "Bourn Church of England", "Cambridge", "yes", []],
+  [1, "Anna Hilll", "Raphael Hill", "13", "At Andrews", "Uk", "no", []],
+  [1, "Natalie Harrington", "Aubrey Harrington-Evans", "10", ".", "Cambridgeshire", "yes", []],
+  [1, "Yoselin RO", "Sophia", "7", "fawcett", "trumpington", "no", []],
+  [1, "Kat Incze", "J B", "6", "Westfield", "Norfolk", "yes", []],
+  [1, "Jim Coates", "Vik", "7", "Caldecote", "Caldecote", "yes", []],
+  [1, "Roberta Kirklyte", "Dree Pukjans", "8", "St Albans", "Cambridge", "yes", []],
+  [1, "Johanne Lynch", "Edward R", "5", "Kings", "Cambridge", "no", []],
+  [1, "Abbey Louise", "Reuben sampson", "5", "Stapleford", "Sawston", "no", []],
+  [1, "Sarah Howes", "Wilfred Howes", "8", "Icknielf walk first school", "Royston", "no", []],
+  [1, "Natalia Silina", "Mykola Lushchyk", "10", "Fawcett primary school", "Cb29dp", "no", []],
+  [1, "Collette Bentley", "Elias stadler", "8", "Heritage", "Clay fsrm", "yes", []],
+  [1, "her", "bob hoskins", "6", "bibbyville", "st ives", "no", []],
+  [1, "Karolina Labrenz-Krzciuk", "Gaia Krzciuk", "5", "the grove primary school", "kings hedges", "yes", []],
+  [1, "Tej Williamson", "Seth", "9", "Trumpington Meadows Primary", "Cambridge", "no", []],
+  [1, "Jen O'Flaherty", "Brannigan", "5", "St Joseph's Catholic School", "Aldershot/Farnham", "yes", []],
+  [1, "Anne-Marie Woolley", "Woolley", "10", "Fairstead House School", "Newmarket", "no", []],
+  [1, "Najada Gjevori Kruja", "Hannah Kruja", "11", "Arbury Primary School", "Cambridge", "yes", []],
+  [1, "Chatura pj Mudiyanselage", "Delon Mudiyanselage", "14", "Bassingbourn vilage", "Orwell", "no", []],
+  [1, "Mihaela Paduraru", "Alexandru Paduraru", "6", "Exning School", "Cambridge", "yes", ["Trial Request"]],
+  [1, "Rumalie Wijewickrama", "Sehath Navaratne", "7", "Hardwick community primary", "Cambourne", "no", ["Trial Request"]],
+  [1, "Donna Haj", "Leo Waldmann", "5", "St Matthew’s", "Cb12ld", "yes", ["Trial Req"]],
+  [1, "Shaida Darian", "Shaida Darian", "8", "Cambridge", "Shelford", "no", ["Callback"]],
+  [1, "Elizabeth Weightman", "Joel Patel", "5", "Marleigh Primary Academy", "Cambridge", "yes", ["Voicemail"]],
+  [1, "Beth Ahlering Gibbeson", "Albie gibbeson", "13", "Swchs", "Saffron walden", "yes", ["Failed Call"]],
+  [1, "Olga", "Yesenia Storozhuk", "10", "Girton Glebe", "Girton", "no", ["Failed Call"]],
+  [1, "Ksyw20", "Archie Ash", "5", "Ridgefield", "Cambridge", "no", ["Voicemail"]],
+  [1, "Ceri Wiggins", "Harrison Chmielewski", "9", "St faiths", "Bassingbourn", "yes", ["Holiday Camp Int"]],
+  [1, "Heather Mughal", "Sammy Mughal", "10", "Great Chesterford primary", "Great Chesterford", "yes", ["Callback"]],
+  [1, "Olha Klimova", "Oksana", "8", "The Vine Inter-Church School", "Cambourne", "no", ["No Pick Up"]],
+  [1, "Lan Yang", "Carmen Li", "13", "Perse", "Cambridge", "yes", ["Voicemail"]],
+  [1, "Ludmila Jones", "Careers lead", "11", "Leventhorpe School", "Hertfordshire", "yes", ["Python Focus", "Emailed"]],
+  [1, "MTS", "NPK", "5", "HP", "Northstowe", "no", ["Enquiry"]],
+  [4, "Oana Manda", "Victor Manda", "5", "Caldecote Primary School", "Hardwick", "yes", ["Trial Booked"]],
+  [1, "Shoghik Khurshudyan", "Richard", "8", "Big", "Hertfordshire", "yes", ["Callback"]],
+  [1, "preet", "Japji grewal", "6", "Bp", "Rich", "yes", ["Emailed"]],
+  [1, "Katharine Gamble", "Hattie W", "8", "None", "Cambridgeshire", "yes", ["Failed Call"]],
+  [1, "fatemeh", "b TJ", "8", "school", "CB1", "no", ["Busy"]],
+  [1, "Hazel Midgett", "Micheal midgett", "5", "Fairstead", "Newmarket", "yes", ["Voicemail"]],
+  [1, "Damian Middleton", "Esme Middleton", "9", "Cottenham Primary", "Cottenham", "yes", ["Voicemail"]],
+  [1, "Corinne Standen", "Luca standen", "11", "Bassingbourn Village", "Basssingbourn", "yes", ["Sat Morning", "Emailed"]],
+  [1, "Samantha Salisbury", "Theo", "13", "SPF", "Cambridge", "yes", ["Emailed"]],
+  [1, "Anna", "Oscar Williams", "7", "Willingham", "Willingham", "no", ["Voicemail"]],
+  [1, "Hassen Iqbal", "Yusuf Al Qadri", "8", "homeschool", "Northstowe", "yes", []],
+  [1, "Ziyan", "emma Kwan", "6", "Trumpington park primary", "Trumpington", "yes", []],
+  [1, "Marcus Stevens", "Zai Carnegie", "6", "Teversham", "Longstanton", "yes", []],
+  [1, "Emily kew", "Biggles Jackson-Kew", "13", "St Bedes", "Cambridge", "yes", []],
+  [1, "Charlotte", "Stanley", "6", "N/a", "Cambridgeshire", "yes", []],
+  [1, "Ulrike", "Daniella Mauchle", "5", "Pathfinder in Northstowe", "Northstowe", "yes", []],
+  [1, "Linda Brett Dayal", "Max Dayal", "12", "Netherhall", "Queen Edith", "yes", []],
+  [1, "Khan", "Khan", "11", "Primary school", "Cambridge", "yes", []],
+
+  // Section 2: Interested in next class cycle
+  [3, "Ahmed Helali", "Marwan Helali", "5", "University of Cambridge Primary School", "Eddington", "no", ["Sept Target", "Summer Camp"]],
+  [3, "Inga Grigaitiene", "Lukas Ford-Grigaitis", "6", "School", "Cambridge", "yes", ["June Camp"]],
+
+  // Section 3: Child booked in for free trial
+  [4, "Mya Fekry", "Henry Troll", "7", "N/a", "Cambridge", "yes", ["Trial Booked", "Sunday"]],
+  [4, "Andrew Taylor", "Cody Taylor", "11", "Home schooled", "Great Dunmow", "yes", ["Trial Booked", "Sunday"]],
+  [4, "Orsi Sargent", "Noah Sargent", "8", "Pathfinder", "Cambridge", "yes", ["Trial Booked", "Saturday"]],
+  [4, "Nadiia Rychok", "Maksym", "6", "Ely St John’s Primary", "Ely", "yes", ["Trial Booked", "Sunday"]],
+  [4, "Pamela Franklin", "Robert Franklin", "9", "Wickhambrook primary", "Stradishall", "yes", ["Trial Booked", "Saturday"]],
+  [4, "Cansu", "Ata", "5", "Ucps", "Trumpington", "yes", ["Trial Booked", "Sunday"]],
+
+  // Section 4: Child registers to club
+  [6, "Francesca Busuttil", "Sebby Busuttil", "10", "Kings college school", "Fenstanton", "yes", ["Summer Camp"]],
+
+  // Section 5: Left the club -> Group 8 (Lost Leads)
+  [8, "Ellie Percival", "Maisie Hart", "9", "Primary School", "Suburb", "yes", ["Completed Trial", "Wanted Social"]],
+  [8, "Aysegul Ongider", "Can Ongider", "7", "Morley Memorial Primary", "Cb1", "yes", ["Refund Requested"]],
+  [8, "Chloe Wilson", "Caelan Wilson", "7", "NA", "Lower Cambourne", "yes", ["Dyslexic"]],
+  [8, "Naa Lomoteley", "Ruel Abbey", "7", "Ely St John", "Ely", "yes", ["Long Travel"]],
+
+  // Section 6: Lost Leads
+  [8, "Andrew Hills", "N/A", "10", "N/A", "Cambridge", "yes", ["No Response"]],
+  [8, "Jahanzeb Ahmad", "Samiha", "10", "Home Ed", "Cambourne", "no", ["Joined Another Club"]],
+  [8, "Su Khanna", "Kiara", "10", "Perse", "Shelford", "yes", ["Do Not Contact"]],
+  [8, "Sadia shan", "Eesa asif", "7", "Stephen perse", "Cambridge", "no", ["Can't Afford"]],
+  [8, "Surabhi Khanna", "K", "11", "X", "Cambridge", "no", []],
+
+  // Section 7: Maybe interested in future (mapped to Group 3: Interested in next class cycle)
+  [3, "Tricia Patterson Jimenez", "River Jimenez", "7", "Perse Prep", "Trumpington", "yes", ["Sept 2026 Target"]],
+  [3, "Liza Nekrasova", "Illia", "7", "Marleigh Primary Academy", "Cb5", "yes", ["Contact in Future"]],
+  [3, "Mina Abid", "Rayane Chhagan", "6", "SPF", "Cherry hinton", "yes", []]
+];
+
+export const SINGAPORE_LEADS_DATA = [
+  // Incoming Leads (Section 1)
+  [1, "hazely", "Jeric Yeo", "9", "Punggol view", "Punggol", "yes", ["June Camp"]],
+  [1, "Diana Liu", "Vanness Koh", "8", "N/A", "Sengkang", "yes", ["Sengkang"]],
+  [1, "Ellyn Tan Yue Ling", "Jazper lye", "9", "Springdale primary school", "Sengkang", "no", ["Sat Preferred"]],
+  [1, "Kanika Maheshwari", "Manya chintamani", "10", "N/A", "Bukit Timah", "no", []],
+  [1, "Desmond Choong", "Ryius choong", "10", "Elisa park primary", "Pasir ris", "yes", ["No Response"]],
+  [1, "Parth Soni", "Prachal", "10", "N/A", "Cck", "no", ["No Response"]],
+  [1, "Winnie", "Rebecca", "11", "NA", "NA", "no", ["No Response"]],
+  [1, "Shirley", "Bowen", "7", "N/A", "N/A", "no", ["No Response"]],
+  [1, "Pei Shan", "Emma", "8", "N/A", "Sembawang", "no", []],
+  [1, "Matthew Lee", "MATTHIAS LEE", "14", "N/A", "JURONG WEST", "yes", ["Term 3 Start"]],
+  [1, "Sharon Yong", "Kimberley Gan", "7", "N/A", "N/A", "no", ["June Camp"]],
+  [1, "Sunil Sharma", "Mivaan Sharma", "7", "N/A", "N/A", "no", ["June Camp"]],
+  [1, "Zeena Ayyan", "RAQUIB RAYYAN", "8", "N/A", "N/A", "no", ["June Camp"]],
+  [1, "Rachel Chua", "Malcolm Toh", "12", "N/A", "West", "yes", ["June Camp"]],
+  [1, "Swapna Deverakonda", "advait Kodukulla", "12", "one world international", "Singapore", "no", ["June Camp"]],
+  [1, "SKay", "Siddharth Saravana", "7", "N/A", "Dover", "no", ["Robotics"]],
+  [1, "Toriumi Kouichi", "Amane Toriumi", "5", "N/A", "Punggol", "no", ["Saturday"]],
+  [1, "Melvyn Russell", "Calvyn Reign Susaya", "7", "N/A", "Tampines", "yes", ["June Camp"]],
+  [1, "Maureen Ho", "Percy lam", "4", "star learner", "jurong", "no", []],
+  [1, "Aishah", "Eshan", "6", "N/A", "N/A", "no", []],
+  [1, "Shirley Sim", "Timmy", "9", "N/A", "N/A", "yes", []],
+  [1, "Wai Loon", "Ethan Chong", "10", "N/A", "West Coast", "no", []],
+  [1, "Jasmine J Goh", "Theseus chua", "13", "Tanjong katong secondary", "Katong", "no", []],
+  [1, "Selene LY Teo", "Nicholas Chua", "8", "Anderson Pri", "Ang Mo Kio", "no", []],
+  [1, "Angell Wong", "Rong En", "5", "Homeschool", "Cck", "no", []],
+  [1, "stef", "jun yang, lew", "9", "N/A", "N/A", "no", []],
+  [1, "Chua", "Derek Chua", "8", "N/A", "Bedok", "yes", []],
+  [1, "Cruz Reyes", "Maison", "9", "OWIS", "Lakeside", "no", []],
+  [1, "Sarah Yong", "Ly", "8", "N/A", "N/A", "no", []],
+  [1, "Peg Foo", "Kwei hong yu", "6", "N/A", "Tampines", "yes", []],
+
+  // Workshops (Section 2) -> Group 11 (Camp registered / Workshop)
+  [11, "Tyla test", "Tyla", "3", "N/A", "N/A", "no", ["Workshop"]],
+
+  // Interested in camps (Section 3) -> Group 0 (Winter Holiday Camp Leads)
+  [0, "Hardik Shelat", "YS", "15", "N/A", "N/A", "no", ["Holiday Camp"]],
+  [0, "Tammy Kok", "julian", "7", "N/A", "central", "no", ["Holiday Camp"]],
+  [0, "sunil", "kiyansh", "6", "N/A", "N/A", "yes", ["Holiday Camp"]],
+  [0, "qi lin", "go", "8", "N/A", "N/A", "yes", ["Holiday Camp"]],
+
+  // Schools/Internal (Section 4) -> Group 10 (Outside of Alberton)
+  [10, "Danielle de Kock 1", "N/A", "10", "resolute tets", "Preotria", "yes", ["Internal Test"]],
+  [10, "Danielle de Kock 2", "N/A", "10", "resolute", "r", "yes", ["Internal Test"]]
+];
+
 export const TOTAL_LEADS_COUNT = 746;
 
 export const GROUP_COUNTS: Record<string, number> = {
