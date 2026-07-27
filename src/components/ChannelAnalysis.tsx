@@ -1,35 +1,20 @@
-import { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { motion } from "motion/react";
 import { 
-  MessageSquare, 
-  Mail, 
   Phone, 
-  Lock, 
-  Lightbulb, 
-  Target, 
-  Settings, 
-  ArrowRight,
-  TrendingUp,
-  Sliders,
-  AlertCircle,
-  HelpCircle
+  Mail, 
+  MessageSquare, 
+  Users, 
+  CheckCircle2, 
+  Calendar,
+  Sparkles,
+  TrendingUp
 } from "lucide-react";
-import { 
-  ResponsiveContainer, 
-  PieChart, 
-  Pie, 
-  Cell, 
-  Tooltip as RechartsTooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend
-} from "recharts";
 
 interface ChannelAnalysisProps {
-  conversationsSummary: {
+  totalLeadsContacted: number;
+  setTotalLeadsContacted: (val: number) => void;
+  conversationsSummary?: {
     total: number;
     whatsapp: number;
     email: number;
@@ -38,429 +23,224 @@ interface ChannelAnalysisProps {
 }
 
 export default function ChannelAnalysis({
+  totalLeadsContacted,
+  setTotalLeadsContacted,
   conversationsSummary
 }: ChannelAnalysisProps) {
+  // Specific touch inputs (which can overlap across the total contacted leads)
+  const [phoneCallContacts, setPhoneCallContacts] = useState<number>(42);
+  const [emailContacts, setEmailContacts] = useState<number>(68);
+  const [textContacts, setTextContacts] = useState<number>(55);
+  const [clientsVisiting, setClientsVisiting] = useState<number>(24);
 
-  // Multiplier State: Typically how many interactions are required to trigger 1 paid sign-on
-  // Ratios can go up to at least 150 as requested to accommodate high franchisee touchpoints
-  const [whatsappPerConversion, setWhatsappPerConversion] = useState<number>(12);
-  const [emailPerConversion, setEmailPerConversion] = useState<number>(20);
-  const [phonePerConversion, setPhonePerConversion] = useState<number>(6);
-  
-  // Target conversion count inputs
-  const [targetStudentRegistrations, setTargetStudentRegistrations] = useState<number>(15);
-
-  // Overrides for current outreach sent to play around with and rectify (Sandbox Mode)
-  const [useOverride, setUseOverride] = useState<boolean>(false);
-  const [manualWhatsApp, setManualWhatsApp] = useState<number>(conversationsSummary.whatsapp);
-  const [manualEmail, setManualEmail] = useState<number>(conversationsSummary.email);
-  const [manualPhone, setManualPhone] = useState<number>(conversationsSummary.call);
-
-  useEffect(() => {
-    setManualWhatsApp(conversationsSummary.whatsapp);
-    setManualEmail(conversationsSummary.email);
-    setManualPhone(conversationsSummary.call);
-  }, [conversationsSummary]);
-
-  const currentWhatsApp = useOverride ? manualWhatsApp : conversationsSummary.whatsapp;
-  const currentEmail = useOverride ? manualEmail : conversationsSummary.email;
-  const currentPhone = useOverride ? manualPhone : conversationsSummary.call;
-  const currentTotal = currentWhatsApp + currentEmail + currentPhone;
-
-  // Calculate required totals based on dynamic inputs
-  const requiredWhatsApp = targetStudentRegistrations * whatsappPerConversion;
-  const requiredEmail = targetStudentRegistrations * emailPerConversion;
-  const requiredPhone = targetStudentRegistrations * phonePerConversion;
-
-  // Deficit calculation
-  const whatsappDeficit = Math.max(0, requiredWhatsApp - currentWhatsApp);
-  const emailDeficit = Math.max(0, requiredEmail - currentEmail);
-  const phoneDeficit = Math.max(0, requiredPhone - currentPhone);
-
-  // Dynamic bar data matching the user's required categories
-  const barChartData = [
-    {
-      category: "WhatsApp Msg",
-      "Completed (Current)": currentWhatsApp,
-      "Required (To Close Goal)": requiredWhatsApp,
-      "Remaining Outbound Gap": whatsappDeficit
-    },
-    {
-      category: "Email Broadcasts",
-      "Completed (Current)": currentEmail,
-      "Required (To Close Goal)": requiredEmail,
-      "Remaining Outbound Gap": emailDeficit
-    },
-    {
-      category: "Phone Call Logs",
-      "Completed (Current)": currentPhone,
-      "Required (To Close Goal)": requiredPhone,
-      "Remaining Outbound Gap": phoneDeficit
-    }
-  ];
-
-  const pieData = [
-    { name: "WhatsApp Campaigns", value: currentWhatsApp, color: "#313BF5", icon: MessageSquare, ratio: `${currentTotal > 0 ? ((currentWhatsApp / currentTotal) * 100).toFixed(0) : 0}%` },
-    { name: "Email Broadcasts", value: currentEmail, color: "#FFB100", icon: Mail, ratio: `${currentTotal > 0 ? ((currentEmail / currentTotal) * 100).toFixed(0) : 0}%` },
-    { name: "Phone Call Logs", value: currentPhone, color: "#E8596D", icon: Phone, ratio: `${currentTotal > 0 ? ((currentPhone / currentTotal) * 100).toFixed(0) : 0}%` }
-  ];
-
-  const recommendations = [
-    {
-      title: "Targeted Outreach Sequences",
-      desc: "For the franchise success manager, trigger WhatsApp automated lists specifically to parents logged as 'waiting for response' to convert trials into student active status on-the-fly.",
-      icon: Target,
-      color: "from-brand-blue to-blue-800"
-    },
-    {
-      title: "Personalized Callback Triggers",
-      desc: "To bridge the phone call logs gap, deploy secondary direct SMS templates to parents who registered for the Winter Holiday Camp registrations campaign.",
-      icon: Settings,
-      color: "from-brand-pink to-brand-popstar"
-    }
-  ];
+  // Derived conversion rate to visiting studio
+  const visitConversionRate = totalLeadsContacted > 0 
+    ? ((clientsVisiting / totalLeadsContacted) * 100).toFixed(1) 
+    : "0.0";
 
   return (
-    <div className="space-y-6">
-
-      {/* Inputs panel for communication ratios */}
-      <div className="bg-[#121320] border border-brand-blue/15 rounded-2xl p-5 shadow-xl space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-brand-blue/10 pb-4">
-          <div className="flex items-center gap-2.5">
-            <Sliders className="h-4 w-4 text-brand-cheddar" />
-            <div>
-              <span className="block text-xs font-black uppercase text-white">Interactive Outreach Multipliers &amp; Target Goal Simulator</span>
-              <span className="text-[10px] text-gray-400">Tweak touch-to-conversion weights to model required follow-ups for team targets. Supports up to 150 touchpoints.</span>
-            </div>
-          </div>
-          <div className="flex items-center gap-2 bg-brand-onyx/20 px-3 py-1.5 rounded-xl border border-brand-blue/20">
-            <input 
-              type="checkbox" 
-              id="sandbox-override"
-              checked={useOverride}
-              onChange={(e) => setUseOverride(e.target.checked)}
-              className="h-3.5 w-3.5 accent-brand-cheddar rounded border-gray-300"
-            />
-            <label htmlFor="sandbox-override" className="text-xs text-white font-bold cursor-pointer select-none">
-              Enable Sandbox Mode (Manual Overrides)
-            </label>
-          </div>
-        </div>
-
-        {/* Dynamic Sliders for Conversion Ratios */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-5">
-          {/* Target registrations slider */}
-          <div className="bg-brand-onyx/10 border border-brand-blue/10 p-3.5 rounded-xl space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-gray-300 font-bold uppercase">Sign-On Target Goal</span>
-              <span className="font-mono text-xs text-brand-cheddar font-bold">+{targetStudentRegistrations} kids</span>
-            </div>
-            <input 
-              type="range"
-              min={1}
-              max={150}
-              value={targetStudentRegistrations}
-              onChange={(e) => setTargetStudentRegistrations(Number(e.target.value))}
-              className="w-full h-1 bg-brand-onyx rounded-lg cursor-pointer accent-brand-cheddar"
-            />
-            <span className="text-[9px] text-gray-500 block leading-tight">Additional active students required inside this franchise.</span>
-          </div>
-
-          {/* WhatsApp multiplier */}
-          <div className="bg-brand-onyx/10 border border-brand-blue/10 p-3.5 rounded-xl space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase">WhatsApp Conv. Ratio</span>
-              <span className="font-mono text-xs text-emerald-400 font-bold">{whatsappPerConversion} Touches</span>
-            </div>
-            <input 
-              type="range"
-              min={1}
-              max={150}
-              value={whatsappPerConversion}
-              onChange={(e) => setWhatsappPerConversion(Number(e.target.value))}
-              className="w-full h-1 bg-brand-onyx rounded-lg cursor-pointer accent-emerald-400"
-            />
-            <span className="text-[9px] text-gray-500 block leading-tight">Estimated bulk messages sent to obtain 1 registration. (Max 150)</span>
-          </div>
-
-          {/* Email multiplier */}
-          <div className="bg-brand-onyx/10 border border-brand-blue/10 p-3.5 rounded-xl space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-brand-cheddar font-bold uppercase">Email Conv. Ratio</span>
-              <span className="font-mono text-xs text-brand-cheddar font-bold">{emailPerConversion} Touches</span>
-            </div>
-            <input 
-              type="range"
-              min={1}
-              max={150}
-              value={emailPerConversion}
-              onChange={(e) => setEmailPerConversion(Number(e.target.value))}
-              className="w-full h-1 bg-brand-onyx rounded-lg cursor-pointer accent-brand-cheddar"
-            />
-            <span className="text-[9px] text-gray-500 block leading-tight">Mailed campaigns released to score 1 signed student. (Max 150)</span>
-          </div>
-
-          {/* Phone call multiplier */}
-          <div className="bg-brand-onyx/10 border border-brand-blue/10 p-3.5 rounded-xl space-y-1.5">
-            <div className="flex justify-between items-center">
-              <span className="text-[10px] text-brand-pink font-bold uppercase">Phone Call Ratio</span>
-              <span className="font-mono text-xs text-brand-pink font-bold">{phonePerConversion} Touches</span>
-            </div>
-            <input 
-              type="range"
-              min={1}
-              max={150}
-              value={phonePerConversion}
-              onChange={(e) => setPhonePerConversion(Number(e.target.value))}
-              className="w-full h-1 bg-brand-onyx rounded-lg cursor-pointer accent-brand-pink"
-            />
-            <span className="text-[9px] text-gray-500 block leading-tight">Successful voice calls made per closed student roll-on. (Max 150)</span>
-          </div>
-        </div>
-
-        {/* Sandbox Override Input Form (Enabled when useOverride is checked) */}
-        {useOverride && (
-          <div className="bg-brand-blue/10 border border-brand-blue/30 p-4 rounded-xl space-y-3">
-            <span className="block text-[11px] font-bold uppercase tracking-wider text-brand-cheddar">Outreach Sandbox Playground Inputs</span>
-            <p className="text-xs text-gray-300">
-              Manually modify the outbound counts below to rectify files or play around and project how many touches you need to hit the target.
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">WhatsApp Sent Sandbox</label>
-                <input 
-                  type="number"
-                  min="0"
-                  value={manualWhatsApp}
-                  onChange={(e) => setManualWhatsApp(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-brand-onyx/40 border border-brand-blue/30 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar font-mono font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Emails Sent Sandbox</label>
-                <input 
-                  type="number"
-                  min="0"
-                  value={manualEmail}
-                  onChange={(e) => setManualEmail(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-brand-onyx/40 border border-brand-blue/30 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar font-mono font-bold"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Phone Calls Made Sandbox</label>
-                <input 
-                  type="number"
-                  min="0"
-                  value={manualPhone}
-                  onChange={(e) => setManualPhone(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-brand-onyx/40 border border-brand-blue/30 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar font-mono font-bold"
-                />
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Comparative Analytical Insight */}
-        <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl space-y-3">
-          <span className="block text-xs font-black text-white uppercase tracking-wider">
-            FSM Conversion Ratio Diagnostics &amp; Comparison Source
+    <div className="space-y-6 font-sans">
+      
+      {/* Header Banner */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div>
+          <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-brand-blue bg-blue-50 border border-blue-200 block w-max mb-1">
+            Outreach Tracker
           </span>
-          <div className="text-xs text-gray-300 space-y-2 leading-relaxed">
-            <p>
-              We are comparing your <strong>completed outreach touches</strong> (which update dynamically when you upload a CSV or customize the <strong className="text-brand-cheddar">Sandbox Overrides</strong> above) against the <strong>minimum required touches</strong> to successfully enroll <strong className="text-white">+{targetStudentRegistrations}</strong> students.
-            </p>
-            <p className="text-[11px] text-gray-400">
-              The target touches are computed as: <code className="text-brand-cheddar font-mono">Target Sign-Ons ({targetStudentRegistrations}) &times; Conversion Ratio</code>.
-            </p>
+          <h2 className="text-xl font-extrabold text-slate-900 tracking-tight">
+            Leads Contacted This Month
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Enter your total unique leads contacted and record outreach touchpoints across Phone, Email, Text/WhatsApp, and Studio visits.
+          </p>
+        </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 pt-2">
-              {/* Phone call diagnostics */}
-              <div className={`p-3 rounded-lg border ${currentPhone >= requiredPhone ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-[#E8596D]/10 border-[#E8596D]/20'}`}>
-                <span className="block text-[10px] font-bold text-gray-400 uppercase">Voice Phone Calls</span>
-                <div className="flex justify-between items-baseline mt-1">
-                  <span className="font-mono text-sm font-bold text-white">{currentPhone} / {requiredPhone}</span>
-                  <span className={`text-[9px] font-extrabold uppercase ${currentPhone >= requiredPhone ? 'text-emerald-400' : 'text-brand-pink'}`}>
-                    {currentPhone >= requiredPhone ? '✅ Met Goal' : '⚠️ Behind'}
-                  </span>
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {currentPhone >= requiredPhone 
-                    ? `Done! Exceeds required phone calls.` 
-                    : `Make ${requiredPhone - currentPhone} more calls to close target.`}
-                </p>
-              </div>
-
-              {/* WhatsApp diagnostics */}
-              <div className={`p-3 rounded-lg border ${currentWhatsApp >= requiredWhatsApp ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-[#E8596D]/10 border-[#E8596D]/20'}`}>
-                <span className="block text-[10px] font-bold text-gray-400 uppercase">WhatsApp Messages</span>
-                <div className="flex justify-between items-baseline mt-1">
-                  <span className="font-mono text-sm font-bold text-white">{currentWhatsApp} / {requiredWhatsApp}</span>
-                  <span className={`text-[9px] font-extrabold uppercase ${currentWhatsApp >= requiredWhatsApp ? 'text-emerald-400' : 'text-brand-pink'}`}>
-                    {currentWhatsApp >= requiredWhatsApp ? '✅ Met Goal' : '⚠️ Behind'}
-                  </span>
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {currentWhatsApp >= requiredWhatsApp 
-                    ? `Done! Exceeds required WhatsApp messages.` 
-                    : `Send ${requiredWhatsApp - currentWhatsApp} more msgs to close target.`}
-                </p>
-              </div>
-
-              {/* Email diagnostics */}
-              <div className={`p-3 rounded-lg border ${currentEmail >= requiredEmail ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-[#E8596D]/10 border-[#E8596D]/20'}`}>
-                <span className="block text-[10px] font-bold text-gray-400 uppercase">Email Broadcasts</span>
-                <div className="flex justify-between items-baseline mt-1">
-                  <span className="font-mono text-sm font-bold text-white">{currentEmail} / {requiredEmail}</span>
-                  <span className={`text-[9px] font-extrabold uppercase ${currentEmail >= requiredEmail ? 'text-emerald-400' : 'text-brand-pink'}`}>
-                    {currentEmail >= requiredEmail ? '✅ Met Goal' : '⚠️ Behind'}
-                  </span>
-                </div>
-                <p className="text-[10px] text-gray-400 mt-1">
-                  {currentEmail >= requiredEmail 
-                    ? `Done! Exceeds required emails.` 
-                    : `Send ${requiredEmail - currentEmail} more emails to close target.`}
-                </p>
-              </div>
-            </div>
-
-            <p className="text-[10.5px] text-gray-450 mt-2">
-              {currentPhone >= requiredPhone && currentWhatsApp >= requiredWhatsApp && currentEmail >= requiredEmail ? (
-                <span className="text-emerald-400 font-bold block">
-                  🎉 Fantastic work! Your outreach channels (including your Sandbox adjustments) fully meet or exceed the target sign-on requirements. Keep up this high frequency of manual touches!
-                </span>
-              ) : (
-                <span className="text-brand-pink font-bold block">
-                  ⚠️ Note: You still have outreach deficits in some channels. To clear the deficit for any channel, use the Sandbox Overrides above to increase your manual outreach numbers or make more touches!
-                </span>
-              )}
-            </p>
-          </div>
+        <div className="flex items-center gap-2 bg-slate-50 border border-slate-200 px-4 py-2.5 rounded-xl font-mono text-xs text-slate-700">
+          <span>Total Leads Contacted:</span>
+          <strong className="text-brand-blue font-bold text-sm">{totalLeadsContacted}</strong>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Multi-Channel Explanation Note */}
+      <div className="bg-amber-50/60 border border-amber-200/80 rounded-2xl p-4 flex items-start gap-3 text-xs text-amber-900">
+        <Sparkles className="h-4 w-4 text-amber-600 shrink-0 mt-0.5" />
+        <div className="leading-relaxed">
+          <strong>Multi-Channel Outreach Rule:</strong> A single lead may receive a phone call, an email, AND a WhatsApp message. Therefore, phone, email, and text counts represent touchpoint coverage of your total leads and do not need to add up to the total leads contacted.
+        </div>
+      </div>
 
-        {/* Engagement Channels */}
-        <div className="bg-[rgba(26,27,38,0.7)] border border-brand-blue/20 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-sm uppercase tracking-wider text-white font-bold mb-4">Interactions Loaded on File</h3>
-            <p className="text-xs text-gray-400 mb-4">Cumulative touches calculated directly from the parsed records file</p>
+      {/* Inputs Card */}
+      <div className="bg-white border border-slate-200 rounded-2xl p-6 shadow-sm space-y-6">
+        
+        <h3 className="text-xs font-black uppercase tracking-wider text-slate-800 pb-2 border-b border-slate-200 flex items-center gap-2">
+          <Phone className="h-4 w-4 text-brand-blue" />
+          <span>Total Contacted &amp; Channel Touch Inputs</span>
+        </h3>
 
-            <div className="flex justify-center mb-6 relative">
-              <ResponsiveContainer width="100%" height={150}>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={65}
-                    paddingAngle={5}
-                    dataKey="value"
-                  >
-                    {pieData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <RechartsTooltip formatter={(value) => [`${value} logs`, "Volume"]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-1">
-                <span className="text-[10px] uppercase font-bold text-gray-400 tracking-wider">File Touches</span>
-                <span className="text-2xl font-bold font-mono text-white">{conversationsSummary.total}</span>
-              </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+          
+          {/* 1. Total Leads Contacted Input */}
+          <div className="space-y-1.5 lg:col-span-1">
+            <label className="block text-xs font-bold text-slate-900">
+              Total Leads Contacted *
+            </label>
+            <div className="relative flex items-center">
+              <Users className="absolute left-3 h-4 w-4 text-brand-blue pointer-events-none" />
+              <input
+                type="number"
+                min={0}
+                value={totalLeadsContacted}
+                onChange={(e) => setTotalLeadsContacted(Math.max(0, Number(e.target.value)))}
+                className="w-full bg-blue-50/50 border-2 border-brand-blue/30 rounded-xl pl-9 pr-3 py-2 text-xs font-black text-slate-900 outline-none focus:border-brand-blue focus:bg-white transition-all font-mono"
+                placeholder="e.g. 85"
+              />
             </div>
-
-            <div className="space-y-2.5">
-              {pieData.map((item, index) => {
-                const Icon = item.icon;
-                return (
-                  <div key={index} className="flex items-center justify-between p-2 rounded-xl bg-brand-blue/5 border border-brand-blue/10">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 rounded-lg" style={{ backgroundColor: `${item.color}15`, color: item.color }}>
-                        <Icon className="h-4 w-4" />
-                      </div>
-                      <span className="text-xs text-gray-200 font-medium">{item.name}</span>
-                    </div>
-                    <div className="flex items-center gap-1.5 text-xs font-mono text-white font-bold">
-                      <span>{item.value}</span>
-                      <span className="text-gray-400 text-[10px]">({item.ratio})</span>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <span className="text-[10px] text-slate-500 font-medium">Total unique leads reached</span>
           </div>
 
-          <div className="p-3.5 bg-brand-blue/5 border border-brand-blue/20 rounded-xl mt-4 flex items-center gap-3">
-            <Lock className="h-4 w-4 text-brand-cheddar shrink-0" />
-            <p className="text-[10px] text-gray-300 leading-relaxed font-sans">
-              <strong>FSM Advisory Note:</strong> Outreach indicators are configured recursively to compare parsed logs directly to simulated sign-on target goals shown on the right.
-            </p>
+          {/* 2. Phone Call Contacts */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Phone Calls Made *
+            </label>
+            <div className="relative flex items-center">
+              <Phone className="absolute left-3 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="number"
+                min={0}
+                value={phoneCallContacts}
+                onChange={(e) => setPhoneCallContacts(Math.max(0, Number(e.target.value)))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-brand-blue focus:bg-white transition-all font-mono"
+                placeholder="e.g. 42"
+              />
+            </div>
+            <span className="text-[10px] text-slate-400">Leads who received phone calls</span>
           </div>
+
+          {/* 3. Email Contacts */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Emails Sent *
+            </label>
+            <div className="relative flex items-center">
+              <Mail className="absolute left-3 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="number"
+                min={0}
+                value={emailContacts}
+                onChange={(e) => setEmailContacts(Math.max(0, Number(e.target.value)))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-brand-blue focus:bg-white transition-all font-mono"
+                placeholder="e.g. 68"
+              />
+            </div>
+            <span className="text-[10px] text-slate-400">Leads who received emails</span>
+          </div>
+
+          {/* 4. Text / WhatsApp Contacts */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Texts / WhatsApp *
+            </label>
+            <div className="relative flex items-center">
+              <MessageSquare className="absolute left-3 h-4 w-4 text-slate-400 pointer-events-none" />
+              <input
+                type="number"
+                min={0}
+                value={textContacts}
+                onChange={(e) => setTextContacts(Math.max(0, Number(e.target.value)))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-brand-blue focus:bg-white transition-all font-mono"
+                placeholder="e.g. 55"
+              />
+            </div>
+            <span className="text-[10px] text-slate-400">Leads who received text / WhatsApp</span>
+          </div>
+
+          {/* 5. Clients Visiting */}
+          <div className="space-y-1.5">
+            <label className="block text-xs font-bold text-slate-700">
+              Clients Visiting *
+            </label>
+            <div className="relative flex items-center">
+              <Users className="absolute left-3 h-4 w-4 text-amber-600 pointer-events-none" />
+              <input
+                type="number"
+                min={0}
+                value={clientsVisiting}
+                onChange={(e) => setClientsVisiting(Math.max(0, Number(e.target.value)))}
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl pl-9 pr-3 py-2 text-xs font-bold text-slate-900 outline-none focus:border-amber-600 focus:bg-white transition-all font-mono"
+                placeholder="e.g. 24"
+              />
+            </div>
+            <span className="text-[10px] text-amber-700 font-medium">Attended trial / studio visit</span>
+          </div>
+
         </div>
 
-        {/* Dynamic Target Deficit Chart View */}
-        <div className="lg:col-span-2 bg-[rgba(26,27,38,0.7)] border border-brand-blue/20 rounded-2xl p-5 shadow-xl flex flex-col justify-between">
-          <div>
-            <div className="flex justify-between items-start mb-4">
-              <div>
-                <h3 className="text-sm uppercase tracking-wider text-white font-bold">Target Achievement Outreach Deficit</h3>
-                <p className="text-xs text-gray-400">Comparing current uploaded touches against target required actions to convert <span className="text-brand-cheddar">+{targetStudentRegistrations}</span> pupils</p>
-              </div>
+      </div>
 
-              <div className="flex items-center gap-1.5 text-xs bg-brand-cheddar/10 border border-brand-cheddar/20 px-3 py-1 rounded-xl text-brand-cheddar">
-                <TrendingUp className="h-4 w-4 animate-bounce" />
-                <span className="font-bold">Graph Comparison Mode</span>
-              </div>
+      {/* Outcome Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+        
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-slate-500">Phone Outreach</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-brand-blue border border-blue-200">
+              <Phone className="h-4 w-4" />
             </div>
-
-            {/* Recharts Bar Chart visualizing comparison */}
-            <div className="w-full h-56 pt-2">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={barChartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#1f2937" opacity={0.3} />
-                  <XAxis dataKey="category" stroke="#9ca3af" fontSize={10} tickLine={false} />
-                  <YAxis stroke="#9ca3af" fontSize={10} tickLine={false} />
-                  <RechartsTooltip contentStyle={{ backgroundColor: "#111221", borderColor: "#313bf530" }} />
-                  <Legend wrapperStyle={{ fontSize: 9 }} />
-                  <Bar dataKey="Completed (Current)" fill="#93c5fd" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Required (To Close Goal)" fill="#313BF5" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="Remaining Outbound Gap" fill="#E8596D" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-
-            {/* Numeric Gap Results indicators */}
-            <div className="grid grid-cols-3 gap-3.5 mt-4">
-              <div className="p-3 bg-brand-blue/5 border border-brand-blue/10 rounded-xl text-center">
-                <span className="text-[9px] text-gray-400 block uppercase font-mono">WhatsApp Deficit</span>
-                <span className={`text-sm font-mono font-bold ${whatsappDeficit > 0 ? "text-brand-pink" : "text-emerald-400"}`}>
-                  {whatsappDeficit > 0 ? `+${whatsappDeficit} msgs` : "0 (Met)"}
-                </span>
-              </div>
-              <div className="p-3 bg-[#FFB100]/5 border border-[#FFB100]/10 rounded-xl text-center">
-                <span className="text-[9px] text-gray-400 block uppercase font-mono">Mail Deficit</span>
-                <span className={`text-sm font-mono font-bold ${emailDeficit > 0 ? "text-brand-cheddar" : "text-emerald-400"}`}>
-                  {emailDeficit > 0 ? `+${emailDeficit} emails` : "0 (Met)"}
-                </span>
-              </div>
-              <div className="p-3 bg-brand-pink/5 border border-brand-pink/10 rounded-xl text-center">
-                <span className="text-[9px] text-gray-400 block uppercase font-mono">Voice Call Deficit</span>
-                <span className={`text-sm font-mono font-bold ${phoneDeficit > 0 ? "text-brand-pink" : "text-emerald-400"}`}>
-                  {phoneDeficit > 0 ? `+${phoneDeficit} calls` : "0 (Met)"}
-                </span>
-              </div>
-            </div>
-
           </div>
-
-          <div className="mt-4 pt-3 border-t border-brand-blue/10 text-[10px] text-gray-400 leading-relaxed font-sans flex items-center gap-2">
-            <AlertCircle className="h-4 w-4 text-brand-coral shrink-0" />
-            <span>Outbound indicators show approximate outreach scale required based on selected conversions ratios. Make call schedules accordingly.</span>
-          </div>
+          <div className="text-2xl font-black font-mono text-slate-900">{phoneCallContacts}</div>
+          <p className="text-[11px] text-slate-500">
+            {totalLeadsContacted > 0 ? Math.min(100, Math.round((phoneCallContacts / totalLeadsContacted) * 100)) : 0}% of total contacted leads received calls
+          </p>
         </div>
 
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-slate-500">Email Outreach</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-brand-blue border border-blue-200">
+              <Mail className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900">{emailContacts}</div>
+          <p className="text-[11px] text-slate-500">
+            {totalLeadsContacted > 0 ? Math.min(100, Math.round((emailContacts / totalLeadsContacted) * 100)) : 0}% of total contacted leads received emails
+          </p>
+        </div>
+
+        <div className="bg-white border border-slate-200 p-5 rounded-2xl shadow-sm space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold uppercase text-slate-500">Text / WhatsApp</span>
+            <div className="p-2 rounded-xl bg-blue-50 text-brand-blue border border-blue-200">
+              <MessageSquare className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black font-mono text-slate-900">{textContacts}</div>
+          <p className="text-[11px] text-slate-500">
+            {totalLeadsContacted > 0 ? Math.min(100, Math.round((textContacts / totalLeadsContacted) * 100)) : 0}% of total contacted leads received texts
+          </p>
+        </div>
+
+        <div className="bg-white border-2 border-amber-300 p-5 rounded-2xl shadow-sm space-y-2 bg-amber-50/30">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-black uppercase text-amber-900">Visiting Clients</span>
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-800 border border-amber-300">
+              <Users className="h-4 w-4" />
+            </div>
+          </div>
+          <div className="text-2xl font-black font-mono text-amber-900">{clientsVisiting}</div>
+          <p className="text-[11px] font-bold text-amber-800">
+            {visitConversionRate}% contact-to-visit conversion rate
+          </p>
+        </div>
+
+      </div>
+
+      {/* Summary Banner */}
+      <div className="bg-blue-50 border border-blue-200 rounded-2xl p-5 flex items-center gap-3 text-xs text-slate-700">
+        <CheckCircle2 className="h-5 w-5 text-brand-blue shrink-0" />
+        <p className="leading-relaxed">
+          <strong>Outreach Channel Summary:</strong> From a total of <strong>{totalLeadsContacted} leads contacted</strong>, outreach included {phoneCallContacts} phone calls, {emailContacts} emails, and {textContacts} texts/WhatsApp messages. From these contacted leads, <strong>{clientsVisiting} clients visited</strong> the club (<strong>{visitConversionRate}% conversion</strong>).
+        </p>
       </div>
 
     </div>

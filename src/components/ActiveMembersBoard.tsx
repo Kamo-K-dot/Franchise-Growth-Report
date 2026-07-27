@@ -40,9 +40,21 @@ interface ActiveMembersBoardProps {
   pricePerLearner: number;
   clubName: string;
   currencySymbol?: string;
+  membersData?: any[];
+  crossMatchSummary?: any;
+  onUploadMembersCSV?: () => void;
+  onUploadLeadsCSV?: () => void;
 }
 
-export default function ActiveMembersBoard({ pricePerLearner, clubName, currencySymbol = "R" }: ActiveMembersBoardProps) {
+export default function ActiveMembersBoard({ 
+  pricePerLearner, 
+  clubName, 
+  currencySymbol = "R",
+  membersData,
+  crossMatchSummary,
+  onUploadMembersCSV,
+  onUploadLeadsCSV
+}: ActiveMembersBoardProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [showAddForm, setShowAddForm] = useState(false);
   const [isUploadingIdx, setIsUploadingIdx] = useState<string | null>(null);
@@ -167,6 +179,30 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
     }
   ]);
 
+  // Sync members when membersData prop is updated from CSV upload
+  React.useEffect(() => {
+    if (membersData && membersData.length > 0) {
+      const mappedMembers: Member[] = membersData.map((m, idx) => ({
+        id: m.id || `mem_csv_${idx}`,
+        studentName: m.studentName || m.childName || "Learner",
+        parentName: m.parentName || "Parent",
+        parentEmail: m.parentEmail || m.email || "N/A",
+        parentPhone: m.parentPhone || m.phone || "N/A",
+        signOnDate: m.signOnDate || "2026-01-15",
+        course: m.course || m.cohort || "Robotics & Coding",
+        lastCheckInDate: m.lastCheckInDate || "2026-06-20",
+        lastCheckInStatus: m.lastCheckInStatus || "Active Member",
+        contactMode: m.contactMode || "WhatsApp",
+        popStatus: m.popStatus || "Uploaded",
+        popFileName: m.popFileName,
+        tuition: m.tuition || pricePerLearner,
+        membershipDuration: m.membershipDuration || 6,
+        paymentMonthsOutstanding: m.paymentMonthsOutstanding || 0
+      }));
+      setMembers(mappedMembers);
+    }
+  }, [membersData, pricePerLearner]);
+
   // Form states for adding members
   const [newStudent, setNewStudent] = useState("");
   const [newParent, setNewParent] = useState("");
@@ -250,56 +286,56 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
     <div className="space-y-6">
       
       {/* Top Accumulated Revenue & Cohort Dashboard cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 text-slate-900">
         {/* Total revenue block */}
-        <div className="bg-[#121320] border border-emerald-500/20 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400">Accumulated Monthly Revenue</span>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] uppercase font-black tracking-widest text-emerald-700">Accumulated Monthly Revenue</span>
           <div className="my-2">
-            <span className="text-2xl font-black text-white font-mono">{currencySymbol}{accumulatedMonthlyRevenue.toLocaleString()}</span>
-            <span className="text-[10px] text-gray-500 block">Sum of all individual student tuitions</span>
+            <span className="text-2xl font-black text-slate-900 font-mono">{currencySymbol}{accumulatedMonthlyRevenue.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-500 block">Sum of all individual student tuitions</span>
           </div>
-          <div className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10 w-fit">
+          <div className="text-[9px] text-emerald-700 font-bold font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 w-fit">
             Active Cash Flow
           </div>
         </div>
 
         {/* Total member count block */}
-        <div className="bg-[#121320] border border-brand-blue/25 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-black tracking-widest text-brand-blue">Total Active Members</span>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] uppercase font-black tracking-widest text-blue-700">Total Active Members</span>
           <div className="my-2">
-            <span className="text-2xl font-black text-white font-mono">{totalActiveMembers} Students</span>
-            <span className="text-[10px] text-gray-500 block">Registered active learners</span>
+            <span className="text-2xl font-black text-slate-900 font-mono">{totalActiveMembers} Students</span>
+            <span className="text-[10px] text-slate-500 block">Registered active learners</span>
           </div>
-          <div className="text-[9px] text-brand-blue font-mono bg-brand-blue/10 px-2 py-0.5 rounded border border-brand-blue/10 w-fit">
+          <div className="text-[9px] text-blue-700 font-bold font-mono bg-blue-50 px-2 py-0.5 rounded border border-blue-200 w-fit">
             Cohort Capacity
           </div>
         </div>
 
         {/* Average tuition block */}
-        <div className="bg-[#121320] border border-brand-cheddar/20 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-black tracking-widest text-brand-cheddar">Average Student Tuition</span>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] uppercase font-black tracking-widest text-amber-700">Average Student Tuition</span>
           <div className="my-2">
-            <span className="text-2xl font-black text-white font-mono">{currencySymbol}{averageTuition.toLocaleString()}</span>
-            <span className="text-[10px] text-gray-500 block">Average fee collected / mo</span>
+            <span className="text-2xl font-black text-slate-900 font-mono">{currencySymbol}{averageTuition.toLocaleString()}</span>
+            <span className="text-[10px] text-slate-500 block">Average fee collected / mo</span>
           </div>
-          <div className="text-[9px] text-brand-cheddar font-mono bg-brand-cheddar/10 px-2 py-0.5 rounded border border-brand-cheddar/10 w-fit">
+          <div className="text-[9px] text-amber-800 font-bold font-mono bg-amber-50 px-2 py-0.5 rounded border border-amber-200 w-fit">
             Yield Per Kid
           </div>
         </div>
 
         {/* Arrears count block */}
-        <div className="bg-[#121320] border border-brand-pink/20 rounded-2xl p-4 flex flex-col justify-between">
-          <span className="text-[10px] uppercase font-black tracking-widest text-brand-pink">Payment Arrears Alert</span>
+        <div className="bg-white border border-slate-200 rounded-2xl p-4 flex flex-col justify-between shadow-sm">
+          <span className="text-[10px] uppercase font-black tracking-widest text-rose-700">Payment Arrears Alert</span>
           <div className="my-2">
-            <span className="text-2xl font-black text-white font-mono">{criticalArrearsCount} Students</span>
-            <span className="text-[10px] text-gray-500 block">&gt;= 2 Months outstanding fees</span>
+            <span className="text-2xl font-black text-slate-900 font-mono">{criticalArrearsCount} Students</span>
+            <span className="text-[10px] text-slate-500 block">&gt;= 2 Months outstanding fees</span>
           </div>
           {criticalArrearsCount > 0 ? (
-            <div className="text-[9px] text-brand-pink font-mono bg-brand-pink/10 px-2 py-0.5 rounded border border-brand-pink/15 w-fit uppercase font-bold animate-pulse">
+            <div className="text-[9px] text-rose-700 font-mono bg-rose-50 px-2 py-0.5 rounded border border-rose-200 w-fit uppercase font-bold animate-pulse">
               🚨 Caution Required
             </div>
           ) : (
-            <div className="text-[9px] text-emerald-400 font-mono bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/10 w-fit">
+            <div className="text-[9px] text-emerald-700 font-mono bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 w-fit">
               All Paid Up
             </div>
           )}
@@ -308,11 +344,11 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
 
       <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
         <div>
-          <h3 className="text-base font-extrabold text-white flex items-center gap-2">
-            <Layers className="h-5 w-5 text-brand-cheddar" />
+          <h3 className="text-base font-extrabold text-slate-900 flex items-center gap-2">
+            <Layers className="h-5 w-5 text-amber-500" />
             <span>Active Members Directory &amp; Billing Control</span>
           </h3>
-          <p className="text-xs text-gray-400 font-sans mt-0.5">
+          <p className="text-xs text-slate-500 font-sans mt-0.5">
             Real-time paying cohorts synced to {clubName} Operations. Change individual tuition fees, courses, and track membership duration alerts.
           </p>
         </div>
@@ -320,13 +356,13 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
         <div className="flex items-center gap-3">
           {/* Quick Search */}
           <div className="relative">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
             <input 
               type="text" 
               placeholder="Search active students..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-brand-onyx/40 border border-brand-blue/20 rounded-xl pl-10 pr-3.5 py-2 text-xs text-white outline-none focus:border-brand-cheddar/50 w-full sm:w-56 transition-all"
+              className="bg-white border border-slate-300 rounded-xl pl-10 pr-3.5 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue w-full sm:w-56 transition-all"
             />
           </div>
 
@@ -345,65 +381,65 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
         <motion.div 
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
-          className="bg-[rgba(26,27,38,0.95)] border border-brand-blue/25 p-5 rounded-2xl shadow-xl max-w-2xl"
+          className="bg-white border border-slate-200 p-5 rounded-2xl shadow-md max-w-2xl"
         >
           <form onSubmit={handleAddMember} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="sm:col-span-2">
-              <h4 className="text-xs font-black uppercase tracking-wider text-brand-cheddar border-b border-brand-blue/10 pb-1.5 mb-2">Onboard New Active Student</h4>
+              <h4 className="text-xs font-black uppercase tracking-wider text-amber-600 border-b border-slate-200 pb-1.5 mb-2">Onboard New Active Student</h4>
             </div>
             
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Student Full Name *</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Student Full Name *</label>
               <input 
                 type="text"
                 required 
                 placeholder="e.g. Liam Naidoo"
                 value={newStudent}
                 onChange={(e) => setNewStudent(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Parent Full Name *</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Parent Full Name *</label>
               <input 
                 type="text"
                 required 
                 placeholder="e.g. Sivan Naidoo"
                 value={newParent}
                 onChange={(e) => setNewParent(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Parent Email</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Parent Email</label>
               <input 
                 type="email" 
                 placeholder="parent@email.com"
                 value={newEmail}
                 onChange={(e) => setNewEmail(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Parent Phone Line</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Parent Phone Line</label>
               <input 
                 type="text" 
                 placeholder="e.g. +27 82 123 4567"
                 value={newPhone}
                 onChange={(e) => setNewPhone(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Registered Program</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Registered Program</label>
               <select 
                 value={newCourse}
                 onChange={(e) => setNewCourse(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               >
                 <option value="Novice Robotics">Novice Robotics</option>
                 <option value="Intermediate Robotics">Intermediate Robotics</option>
@@ -416,11 +452,11 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
             </div>
 
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Preferred Mode of Contact</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Preferred Mode of Contact</label>
               <select 
                 value={newContact}
                 onChange={(e) => setNewContact(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               >
                 <option value="WhatsApp">WhatsApp</option>
                 <option value="Phone Call">Phone Call</option>
@@ -431,33 +467,33 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
 
             {/* Custom Billing & Membership Duration Inputs inside Onboarding form */}
             <div>
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Custom Tuition Fee ({currencySymbol === "R" ? "ZAR" : currencySymbol})</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Custom Tuition Fee ({currencySymbol === "R" ? "ZAR" : currencySymbol})</label>
               <input 
                 type="number"
                 min="0"
                 value={newTuition}
                 onChange={(e) => setNewTuition(Math.max(0, parseInt(e.target.value) || 0))}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40 font-mono"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue font-mono"
               />
             </div>
 
             <div className="grid grid-cols-2 gap-2.5">
               <div>
-                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Duration (Months)</label>
+                <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Duration (Months)</label>
                 <input 
                   type="number"
                   min="0"
                   value={newDuration}
                   onChange={(e) => setNewDuration(Math.max(0, parseInt(e.target.value) || 0))}
-                  className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40 font-mono"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue font-mono"
                 />
               </div>
               <div>
-                <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">Arrears (Months)</label>
+                <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">Arrears (Months)</label>
                 <select 
                   value={newArrears}
                   onChange={(e) => setNewArrears(parseInt(e.target.value) || 0)}
-                  className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                  className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
                 >
                   <option value={0}>Paid Up (0)</option>
                   <option value={1}>1 Month</option>
@@ -468,13 +504,13 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-[10px] uppercase font-bold text-gray-400 mb-1">First Progress Log / Check-In Status</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-600 mb-1">First Progress Log / Check-In Status</label>
               <input 
                 type="text" 
                 placeholder="e.g. Highly active. Excited to construct the planetary motor gearboxes."
                 value={newCheckIn}
                 onChange={(e) => setNewCheckIn(e.target.value)}
-                className="w-full bg-brand-onyx/40 border border-brand-blue/10 rounded-xl px-3 py-2 text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 rounded-xl px-3 py-2 text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
@@ -482,7 +518,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
               <button 
                 type="button"
                 onClick={() => setShowAddForm(false)}
-                className="bg-transparent hover:bg-white/5 border border-white/10 text-xs text-gray-400 rounded-xl px-4 py-2 font-bold cursor-pointer"
+                className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs text-slate-700 rounded-xl px-4 py-2 font-bold cursor-pointer"
               >
                 Cancel
               </button>
@@ -498,10 +534,10 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
       )}
 
       {/* Directory Table */}
-      <div className="overflow-x-auto rounded-xl border border-brand-blue/10 bg-brand-onyx/10">
-        <table className="w-full border-collapse text-left text-xs text-gray-300">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full border-collapse text-left text-xs text-slate-700">
           <thead>
-            <tr className="bg-brand-blue/10 border-b border-brand-blue/25 text-gray-300 uppercase tracking-wider font-semibold">
+            <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 uppercase tracking-wider font-bold">
               <th className="p-3">Student Name</th>
               <th className="p-3">Parent / Contact Details</th>
               <th className="p-3">Schedule Program</th>
@@ -512,32 +548,32 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
               <th className="p-3 text-right">Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-brand-blue/5">
+          <tbody className="divide-y divide-slate-100">
             {filteredMembers.length > 0 ? (
               filteredMembers.map((m) => {
                 const isUploading = isUploadingIdx === m.id;
                 
                 return (
-                  <tr key={m.id} className="hover:bg-brand-blue/5 transition-colors">
+                  <tr key={m.id} className="hover:bg-slate-50 transition-colors">
                     
                     {/* Student Info */}
-                    <td className="p-3 font-semibold text-white flex items-center gap-1.5">
-                      <div className="h-6 w-6 rounded-full bg-brand-blue/15 flex items-center justify-center text-[10px] text-brand-blue uppercase font-bold border border-brand-blue/20">
+                    <td className="p-3 font-semibold text-slate-900 flex items-center gap-1.5">
+                      <div className="h-6 w-6 rounded-full bg-blue-100 flex items-center justify-center text-[10px] text-brand-blue uppercase font-bold border border-blue-200">
                         {m.studentName.charAt(0)}
                       </div>
                       <div>
-                        <span className="block text-xs font-bold text-white">{m.studentName}</span>
-                        <span className="text-[10px] text-gray-500 font-mono">Sign-on: {m.signOnDate}</span>
+                        <span className="block text-xs font-bold text-slate-900">{m.studentName}</span>
+                        <span className="text-[10px] text-slate-500 font-mono">Sign-on: {m.signOnDate}</span>
                       </div>
                     </td>
 
                     {/* Contact details */}
                     <td className="p-3">
                       <div className="space-y-0.5">
-                        <span className="block font-medium text-gray-200 text-xs">{m.parentName}</span>
-                        <div className="flex items-center gap-2 text-[10px] text-gray-500">
-                          <span className="flex items-center gap-0.5"><Phone className="h-2.5 w-2.5 text-brand-cheddar" /> {m.parentPhone}</span>
-                          <span className="flex items-center gap-0.5"><Mail className="h-2.5 w-2.5 text-brand-pink" /> {m.parentEmail}</span>
+                        <span className="block font-medium text-slate-800 text-xs">{m.parentName}</span>
+                        <div className="flex items-center gap-2 text-[10px] text-slate-500">
+                          <span className="flex items-center gap-0.5"><Phone className="h-2.5 w-2.5 text-amber-600" /> {m.parentPhone}</span>
+                          <span className="flex items-center gap-0.5"><Mail className="h-2.5 w-2.5 text-rose-600" /> {m.parentEmail}</span>
                         </div>
                       </div>
                     </td>
@@ -550,7 +586,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                           const val = e.target.value;
                           setMembers(mList => mList.map(member => member.id === m.id ? { ...member, course: val } : member));
                         }}
-                        className="bg-brand-onyx/40 border border-brand-blue/20 rounded-lg px-2 py-1 text-xs text-white outline-none focus:border-brand-cheddar max-w-[150px]"
+                        className="bg-white border border-slate-300 rounded-lg px-2 py-1 text-xs text-slate-900 outline-none focus:border-brand-blue max-w-[150px]"
                       >
                         <option value="Novice Robotics">Novice Robotics</option>
                         <option value="Intermediate Robotics">Intermediate Robotics</option>
@@ -565,7 +601,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                     {/* Tuition price per month - EDITABLE! */}
                     <td className="p-3 font-mono">
                       <div className="relative flex items-center w-24">
-                        <span className="absolute left-2 text-[10px] text-brand-cheddar font-bold">{currencySymbol}</span>
+                        <span className="absolute left-2 text-[10px] text-amber-700 font-bold">{currencySymbol}</span>
                         <input
                           type="number"
                           value={m.tuition}
@@ -573,7 +609,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                             const val = Math.max(0, parseInt(e.target.value) || 0);
                             setMembers(mList => mList.map(member => member.id === m.id ? { ...member, tuition: val } : member));
                           }}
-                          className="w-full bg-brand-onyx/30 border border-brand-blue/20 rounded-lg pl-5 pr-1.5 py-1 text-xs text-brand-cheddar font-mono font-bold outline-none focus:border-brand-cheddar"
+                          className="w-full bg-white border border-slate-300 rounded-lg pl-5 pr-1.5 py-1 text-xs text-amber-800 font-mono font-bold outline-none focus:border-brand-blue"
                         />
                       </div>
                     </td>
@@ -581,8 +617,8 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                     {/* Progress check in log */}
                     <td className="p-3 max-w-[180px]">
                       <div className="space-y-0.5">
-                        <span className="block text-[10px] text-gray-500">{m.lastCheckInDate} ({m.contactMode})</span>
-                        <span className="block text-[10.5px] italic text-gray-300 leading-normal truncate hover:text-white transition-colors cursor-help" title={m.lastCheckInStatus}>
+                        <span className="block text-[10px] text-slate-500">{m.lastCheckInDate} ({m.contactMode})</span>
+                        <span className="block text-[10.5px] italic text-slate-700 leading-normal truncate hover:text-slate-900 transition-colors cursor-help" title={m.lastCheckInStatus}>
                           "{m.lastCheckInStatus}"
                         </span>
                       </div>
@@ -593,17 +629,17 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                       <div className="flex items-center gap-1.5">
                         {m.popStatus === "Uploaded" ? (
                           <div className="flex flex-col gap-0.5">
-                            <span className="text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-bold uppercase">
-                              <CheckCircle className="h-2.5 w-2.5 fill-emerald-500/15" />
+                            <span className="text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded flex items-center gap-1 w-fit font-bold uppercase">
+                              <CheckCircle className="h-2.5 w-2.5 text-emerald-600" />
                               POP Synced
                             </span>
-                            <span className="text-[9px] text-gray-500 font-mono italic max-w-[100px] truncate" title={m.popFileName}>{m.popFileName}</span>
+                            <span className="text-[9px] text-slate-500 font-mono italic max-w-[100px] truncate" title={m.popFileName}>{m.popFileName}</span>
                           </div>
                         ) : (
                           <button
                             disabled={isUploading}
                             onClick={() => handleSimulateUploadPOP(m.id)}
-                            className="bg-brand-blue/10 hover:bg-brand-blue/20 text-[10px] text-brand-blue px-2 py-1 rounded border border-brand-blue/20 flex items-center gap-1 font-bold tracking-wide cursor-pointer transition-all disabled:opacity-50"
+                            className="bg-blue-50 hover:bg-blue-100 text-[10px] text-brand-blue px-2 py-1 rounded border border-blue-200 flex items-center gap-1 font-bold tracking-wide cursor-pointer transition-all disabled:opacity-50"
                           >
                             <Upload className={`h-2.5 w-2.5 ${isUploading ? "animate-bounce" : ""}`} />
                             {isUploading ? "Uploading..." : "Upload POP"}
@@ -612,11 +648,11 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                       </div>
                     </td>
 
-                    {/* Membership Duration & Alerts - REPLACES Parent Vibe column */}
+                    {/* Membership Duration & Alerts */}
                     <td className="p-3">
                       <div className="flex flex-col gap-1.5 min-w-[160px]">
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-gray-400">Duration:</span>
+                          <span className="text-[10px] text-slate-600">Duration:</span>
                           <input
                             type="number"
                             min="0"
@@ -625,20 +661,20 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                               const val = Math.max(0, parseInt(e.target.value) || 0);
                               setMembers(mList => mList.map(member => member.id === m.id ? { ...member, membershipDuration: val } : member));
                             }}
-                            className="w-12 bg-brand-onyx/30 border border-brand-blue/10 rounded px-1.5 py-0.5 text-xs text-white outline-none focus:border-brand-cheddar font-mono"
+                            className="w-12 bg-white border border-slate-300 rounded px-1.5 py-0.5 text-xs text-slate-900 outline-none focus:border-brand-blue font-mono"
                           />
-                          <span className="text-[10px] text-gray-500">mo</span>
+                          <span className="text-[10px] text-slate-500">mo</span>
                         </div>
 
                         <div className="flex items-center gap-1.5">
-                          <span className="text-[10px] text-gray-400">Arrears:</span>
+                          <span className="text-[10px] text-slate-600">Arrears:</span>
                           <select
                             value={m.paymentMonthsOutstanding}
                             onChange={(e) => {
                               const val = parseInt(e.target.value) || 0;
                               setMembers(mList => mList.map(member => member.id === m.id ? { ...member, paymentMonthsOutstanding: val } : member));
                             }}
-                            className="bg-brand-onyx/40 border border-brand-blue/10 rounded px-1 py-0.5 text-[10px] text-white outline-none cursor-pointer"
+                            className="bg-white border border-slate-300 rounded px-1 py-0.5 text-[10px] text-slate-900 outline-none cursor-pointer"
                           >
                             <option value={0}>Paid (0 mo)</option>
                             <option value={1}>1 Mo Unpaid</option>
@@ -650,12 +686,12 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                         {/* Reminders badge panel */}
                         <div className="space-y-1">
                           {m.membershipDuration === 6 && (
-                            <span className="block text-[9px] bg-emerald-500/10 text-emerald-400 border border-emerald-500/25 px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse">
+                            <span className="block text-[9px] bg-emerald-50 text-emerald-700 border border-emerald-200 px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse">
                               🏆 6-Mo Milestone! Congratulate!
                             </span>
                           )}
                           {m.paymentMonthsOutstanding >= 2 && (
-                            <span className="block text-[9px] bg-[#E8596D]/15 text-[#E8596D] border border-[#E8596D]/25 px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse">
+                            <span className="block text-[9px] bg-rose-50 text-rose-700 border border-rose-200 px-1.5 py-0.5 rounded font-extrabold uppercase animate-pulse">
                               ⚠️ 2 Mo Late: Issue Cautionary
                             </span>
                           )}
@@ -667,7 +703,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
                     <td className="p-3 text-right">
                       <button
                         onClick={() => handleDeleteMember(m.id)}
-                        className="text-gray-500 hover:text-brand-pink transition-colors p-1"
+                        className="text-slate-400 hover:text-rose-600 transition-colors p-1"
                         title="Offboard lead from payment roll"
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -679,7 +715,7 @@ export default function ActiveMembersBoard({ pricePerLearner, clubName, currency
               })
             ) : (
               <tr>
-                <td colSpan={8} className="p-8 text-center text-gray-500">No active members found. onboard new ones using the CTA button above.</td>
+                <td colSpan={8} className="p-8 text-center text-slate-500">No active members found. Onboard new ones using the CTA button above.</td>
               </tr>
             )}
           </tbody>

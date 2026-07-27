@@ -22,21 +22,33 @@ import {
   X,
   AlertCircle,
   Award,
-  BookOpen
+  BookOpen,
+  Phone,
+  Printer
 } from "lucide-react";
 import MetricCard from "./components/MetricCard";
 import FunnelChartComponent from "./components/FunnelChartComponent";
-import RevenueProjections from "./components/RevenueProjections";
 import ChannelAnalysis from "./components/ChannelAnalysis";
 import LeadExplorer from "./components/LeadExplorer";
 import ActiveMembersBoard from "./components/ActiveMembersBoard";
+import ExecutiveDashboard from "./components/ExecutiveDashboard";
+import TotalHealthReport from "./components/TotalHealthReport";
 import { 
   RECORDED_TOUCHES_SUMMARY, 
   TOTAL_LEADS_COUNT, 
   LEAD_BOARD_DATA_COMPACT, 
   CAMBRIDGE_LEADS_DATA, 
-  SINGAPORE_LEADS_DATA 
+  SINGAPORE_LEADS_DATA,
+  MEMBER_MGMT_CSV
 } from "./data";
+import { 
+  parseMarketingLeadsCSV, 
+  parseClubMembersCSV, 
+  crossMatchData, 
+  ParsedLead, 
+  ParsedMember, 
+  CrossMatchSummary 
+} from "./utils/csvParser";
 
 // Helper to determine the currency symbol based on the selected club preset name
 export const getCurrencySymbol = (clubName: string): string => {
@@ -70,17 +82,17 @@ const INITIAL_CLUBS_CONFIG: Record<string, {
 }> = {
   Alberton: {
     name: "Alberton",
-    totalLeads: TOTAL_LEADS_COUNT, // 746
-    activeMembersCount: 42,
-    currentActiveMRR: 50400,
-    holidayLeadsCount: 124,
-    totalTrialsCount: 20,
-    unconvertedTrials: 13,
+    totalLeads: 120, // Clean monthly baseline
+    activeMembersCount: 11, // Exactly 11 active monthly paying members
+    currentActiveMRR: 13200, // 11 x 1200
+    holidayLeadsCount: 27, // 27 holiday club registrants
+    totalTrialsCount: 8,
+    unconvertedTrials: 4,
     recordedTouchesSummary: RECORDED_TOUCHES_SUMMARY,
     leadsData: LEAD_BOARD_DATA_COMPACT,
     campaignStats: {
-      holidayCampaignLeads: 124,
-      normalMarketingLeads: 622
+      holidayCampaignLeads: 27,
+      normalMarketingLeads: 93
     }
   },
   Singapore: {
@@ -186,12 +198,14 @@ const INITIAL_CLUBS_CONFIG: Record<string, {
 };
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<"acquisition" | "finance" | "retention" | "members" | "audit">("acquisition");
+  const [activeTab, setActiveTab] = useState<"buildReport" | "executive" | "members" | "retention">("buildReport");
   const [showCopyMessage, setShowCopyMessage] = useState(false);
   const [showNotification, setShowNotification] = useState<string | null>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
+  const leadsFileInputRef = useRef<HTMLInputElement>(null);
+  const membersFileInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null); // auto fallback ref
 
-  // COST TUTION FEE SLIDER STATE (Cost is no longer fixed at R1,200)
+  // COST TUITION FEE SLIDER STATE
   const [pricePerLearner, setPricePerLearner] = useState<number>(1200);
 
   // Dynamic state for all clubs so that CSV uploads/incremental addition is persistent!
@@ -206,6 +220,19 @@ export default function App() {
 
   // Report Generator modal state
   const [showReportModal, setShowReportModal] = useState(false);
+
+  // Central Operational Inputs (shared across Build Total Report and Executive Carla Report)
+  const [hqLeadsGenerated, setHqLeadsGenerated] = useState<number>(100);
+  const [totalLearnersAdded, setTotalLearnersAdded] = useState<number>(20);
+  const [totalLeadsContacted, setTotalLeadsContacted] = useState<number>(50);
+  const [totalFreeTrials, setTotalFreeTrials] = useState<number>(18);
+  const [totalAmountGenerated, setTotalAmountGenerated] = useState<number>(16800);
+  const [clubTotalLearners, setClubTotalLearners] = useState<number>(112);
+
+  const [yearTargetStudents, setYearTargetStudents] = useState<number>(150);
+  const [yearTargetRevenue, setYearTargetRevenue] = useState<number>(216000);
+  const [revenueToDate, setRevenueToDate] = useState<number>(134400);
+  const [studentsToDate, setStudentsToDate] = useState<number>(112);
 
   const activeClub = clubsData[selectedClub] || {
     name: selectedClub,
@@ -711,15 +738,105 @@ export default function App() {
     triggerNotification("Weekly inbound lead inserted successfully! Data persistent inside state.");
   };
 
-  // Dynamic Notification trigger
+  // Notification trigger
   const triggerNotification = (msg: string) => {
     setShowNotification(msg);
     setTimeout(() => {
       setShowNotification(null);
-    }, 4500);
+    }, 5500);
   };
 
-  // CSV Dynamic Loader
+  // Helper to sync cross-match analysis into club state
+  const applyCrossMatchToClub = (clubNameKey: string, rawLeadsText?: string, rawMembersText?: string) => {
+    setClubsData(prev => {
+      const club = prev[clubNameKey] || INITIAL_CLUBS_CONFIG[clubNameKey] || { name: clubNameKey, leadsData: [], membersData: [] };
+      
+      const existingLeads = club.leadsData && club.leadsData.length > 0 ? club.leadsData : parseMarketingLeadsCSV(LEAD_BOARD_DATA_COMPACT as any);
+      const existingMembers = club.membersData && club.membersData.length > 0 ? club.membersData : parseClubMembersCSV(MEMBER_MGMT_CSV, pricePerLearner);
+
+      const parsedLeads = rawLeadsText ? parseMarketingLeadsCSV(rawLeadsText) : existingLeads;
+      const parsedMembers = rawMembersText ? parseClubMembersCSV(rawMembersText, pricePerLearner) : existingMembers;
+
+      const { updatedLeads, updatedMembers, summary } = crossMatchData(parsedLeads, parsedMembers);
+
+      const totalL = summary.totalLeads || updatedLeads.length;
+      const activeM = summary.matchedMembersCount > 0 ? summary.matchedMembersCount : updatedMembers.length;
+      const calculatedMRR = updatedMembers.reduce((acc, m) => acc + (m.tuition || pricePerLearner), 0);
+
+      return {
+        ...prev,
+        [clubNameKey]: {
+          ...club,
+          name: clubNameKey,
+          totalLeads: totalL,
+          activeMembersCount: activeM,
+          currentActiveMRR: calculatedMRR,
+          holidayLeadsCount: summary.holidayCampaignLeads,
+          totalTrialsCount: summary.totalTrialsCount || Math.round(totalL * 0.05),
+          unconvertedTrials: Math.max(0, Math.round(totalL * 0.03)),
+          recordedTouchesSummary: {
+            total: summary.contactedLeads,
+            whatsapp: summary.whatsAppSentTotal,
+            email: summary.emailsSentTotal,
+            call: summary.phoneCallsMadeTotal
+          },
+          leadsData: updatedLeads,
+          membersData: updatedMembers,
+          crossMatchSummary: summary,
+          campaignStats: {
+            holidayCampaignLeads: summary.holidayCampaignLeads,
+            normalMarketingLeads: summary.normalMarketingLeads
+          }
+        }
+      };
+    });
+  };
+
+  // Explicit Marketing Leads CSV Loader
+  const handleLeadsCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const parsedLeads = parseMarketingLeadsCSV(text);
+      if (parsedLeads.length === 0) {
+        triggerNotification("Could not parse Marketing Leads CSV. Please check column headers.");
+        return;
+      }
+
+      applyCrossMatchToClub(selectedClub, text, undefined);
+      triggerNotification(`✅ Successfully loaded Marketing Leads CSV (${parsedLeads.length} leads parsed)! Fully cross-matched against Active Club Members.`);
+    };
+    reader.readAsText(file);
+  };
+
+  // Explicit Club Members CSV Loader
+  const handleMembersCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const text = event.target?.result as string;
+      if (!text) return;
+
+      const parsedMembers = parseClubMembersCSV(text, pricePerLearner);
+      if (parsedMembers.length === 0) {
+        triggerNotification("Could not parse Club Members CSV. Please check column headers.");
+        return;
+      }
+
+      applyCrossMatchToClub(selectedClub, undefined, text);
+      triggerNotification(`✅ Successfully loaded Club Members CSV (${parsedMembers.length} paying members)! Fully cross-matched against Marketing Leads.`);
+    };
+    reader.readAsText(file);
+  };
+
+  // Auto-Detecting CSV Loader
   const handleCSVUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
@@ -729,160 +846,23 @@ export default function App() {
       const text = event.target?.result as string;
       if (!text) return;
 
-      const lines = text.split(/\r?\n/);
-      if (lines.length < 2) {
-        triggerNotification("Invalid CSV file - missing data rows.");
-        return;
-      }
+      const first1000 = text.slice(0, 1000).toLowerCase();
+      const isMembersCSV = (
+        first1000.includes("membership status") || 
+        first1000.includes("payment amount") || 
+        first1000.includes("program option") || 
+        first1000.includes("invoices sent") || 
+        first1000.includes("po'p")
+      );
 
-      const parsedRows: any[] = [];
-      let holidayCampaignMatches = 0;
-      let normalMarketingMatches = 0;
-      let memberCount = 0;
-      let trialCount = 0;
-
-      // Default column indexes (monday.com exported format)
-      let parentNameCol = 0;
-      let childNameCol = 5;
-      let ageCol = 6;
-      let schoolCol = 7;
-      let memberStatusCol = 12;
-      let residenceAreaCol = 13;
-      let newsletterCol = 14;
-
-      // 1. Try to find the exact header indices from the spreadsheet
-      for (let i = 0; i < Math.min(15, lines.length); i++) {
-        const lineVal = lines[i].toLowerCase();
-        if (lineVal.includes("parent name") && lineVal.includes("child's name")) {
-          const cols = lines[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, "").trim().toLowerCase());
-          cols.forEach((col, idx) => {
-            if (col.includes("parent name")) parentNameCol = idx;
-            if (col.includes("child's name") || col.includes("child name")) childNameCol = idx;
-            if (col.includes("child's age") || col.includes("child age") || col.includes("age")) ageCol = idx;
-            if (col.includes("school name")) schoolCol = idx;
-            if (col.includes("member status")) memberStatusCol = idx;
-            if (col.includes("residence") || col.includes("area of residence")) residenceAreaCol = idx;
-            if (col.includes("newsletter") || col.includes("subscribe")) newsletterCol = idx;
-          });
-          break;
-        }
-      }
-
-      let currentSectionId = 1; // Default to "Contacted waiting for response" (Group 1)
-
-      // 2. Loop through lines
-      for (let i = 0; i < lines.length; i++) {
-        const line = lines[i].trim();
-        if (!line) continue;
-
-        // Smart split of columns commas ignoring embedded quotes
-        const columns = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.replace(/^"|"$/g, "").trim());
-        if (columns.length < 2) continue;
-
-        const rawFirst = columns[0] ? columns[0].trim().toLowerCase() : "";
-
-        // Check if this is a decorative or section header line from monday.com
-        const isDecorator = rawFirst.includes("board") || rawFirst.includes("spreadsheet was created") || rawFirst.includes("incoming leads") || rawFirst.includes("parent name and surname");
-        
-        // A section header typically has no other columns populated
-        const isSection = columns.length > 2 && !columns[2] && !columns[3] && !columns[5];
-
-        if (isDecorator || isSection) {
-          if (rawFirst.includes("winter holiday camp")) currentSectionId = 0;
-          else if (rawFirst.includes("waiting for response")) currentSectionId = 1;
-          else if (rawFirst.includes("weekend classes")) currentSectionId = 2;
-          else if (rawFirst.includes("next class cycle")) currentSectionId = 3;
-          else if (rawFirst.includes("trial") || rawFirst.includes("booked")) currentSectionId = 4;
-          else if (rawFirst.includes("blocked") || rawFirst.includes("cannot whatsapp")) currentSectionId = 5;
-          else if (rawFirst.includes("registers to club") || rawFirst.includes("registers")) currentSectionId = 6;
-          else if (rawFirst.includes("attends club")) currentSectionId = 7;
-          else if (rawFirst.includes("left the club")) currentSectionId = 8;
-          else if (rawFirst.includes("lost leads")) currentSectionId = 8;
-          else if (rawFirst.includes("misdirected")) currentSectionId = 9;
-          else if (rawFirst.includes("outside of")) currentSectionId = 10;
-          else if (rawFirst.includes("holiday club- registration") || rawFirst.includes("holiday club - registration") || rawFirst.includes("holiday club-registration")) currentSectionId = 11;
-          continue; // Skip processing this line as a data row
-        }
-
-        const parentName = columns[parentNameCol] || "Inbound Client";
-        const childName = columns[childNameCol] || "Student Lead";
-        const age = columns[ageCol] || "8";
-        const schoolName = columns[schoolCol] || "Primary School";
-        const residenceArea = columns[residenceAreaCol] || "District";
-        const rawStatus = (columns[memberStatusCol] || "").trim().toLowerCase();
-        const newsletterVal = columns[newsletterCol] || "no";
-
-        // Determine if they are a real Member
-        const isMember = (currentSectionId === 6 || currentSectionId === 7 || rawStatus === "member") && rawStatus !== "non-member";
-        
-        // Determine if they are a Trial Lead
-        const isTrial = (currentSectionId === 4 || rawStatus.includes("trial"));
-
-        // Determine if they are Holiday Camp Campaign matches
-        const isHolidayCamp = (currentSectionId === 0 || currentSectionId === 11);
-
-        if (isHolidayCamp) {
-          holidayCampaignMatches++;
-        } else {
-          normalMarketingMatches++;
-        }
-
-        if (isMember) {
-          memberCount++;
-        }
-        if (isTrial) {
-          trialCount++;
-        }
-
-        const cleanMode = newsletterVal.toLowerCase() === "yes" ? "WhatsApp" : "Email";
-        const comment = isHolidayCamp ? "Holiday Club Campaign Lead" : "Inbound Ad Campaign";
-
-        parsedRows.push([
-          currentSectionId,
-          parentName,
-          childName,
-          age,
-          schoolName,
-          residenceArea,
-          cleanMode,
-          [comment, new Date().toISOString().split("T")[0]]
-        ]);
-      }
-
-      if (parsedRows.length > 0) {
-        // Compute final updated metrics
-        const updatedTotalLeads = parsedRows.length;
-        const derivedMembers = memberCount;
-        const derivedTrials = trialCount;
-        const derivedHoliday = holidayCampaignMatches;
-
-        setClubsData(prev => ({
-          ...prev,
-          [selectedClub]: {
-            name: selectedClub,
-            totalLeads: updatedTotalLeads,
-            activeMembersCount: derivedMembers,
-            currentActiveMRR: derivedMembers * pricePerLearner,
-            holidayLeadsCount: derivedHoliday,
-            totalTrialsCount: derivedTrials,
-            unconvertedTrials: Math.max(0, derivedTrials - Math.round(derivedMembers * 0.4)),
-            recordedTouchesSummary: {
-              total: Math.round(updatedTotalLeads * 0.25),
-              whatsapp: Math.round(updatedTotalLeads * 0.12),
-              email: Math.round(updatedTotalLeads * 0.08),
-              call: Math.round(updatedTotalLeads * 0.05)
-            },
-            leadsData: parsedRows,
-            campaignStats: {
-              holidayCampaignLeads: derivedHoliday,
-              normalMarketingLeads: Math.max(0, updatedTotalLeads - derivedHoliday)
-            }
-          }
-        }));
-
-        triggerNotification(
-          `Successfully processed CSV! Synced ${updatedTotalLeads} leads. Found ${derivedMembers} Active Members, ${derivedTrials} Trials, and ${derivedHoliday} Holiday Camp Leads.`
-        );
+      if (isMembersCSV) {
+        const parsedMembers = parseClubMembersCSV(text, pricePerLearner);
+        applyCrossMatchToClub(selectedClub, undefined, text);
+        triggerNotification(`✅ Auto-detected Club Members CSV! (${parsedMembers.length} active members loaded and cross-matched)`);
+      } else {
+        const parsedLeads = parseMarketingLeadsCSV(text);
+        applyCrossMatchToClub(selectedClub, text, undefined);
+        triggerNotification(`✅ Auto-detected Marketing Leads CSV! (${parsedLeads.length} leads loaded and cross-matched)`);
       }
     };
     reader.readAsText(file);
@@ -1014,25 +994,6 @@ Resolute Education Operations Center. http://resolute.education
               />
             </div>
 
-            {/* Simulated CSV Import Box */}
-            <div className="relative">
-              <input 
-                ref={fileInputRef}
-                type="file" 
-                accept=".csv"
-                onChange={handleCSVUpload}
-                className="hidden"
-              />
-              <button 
-                onClick={() => fileInputRef.current?.click()}
-                className="flex items-center gap-1.5 text-xs bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/20 text-emerald-400 font-bold px-3 py-1.5 rounded-lg transition-all cursor-pointer"
-                title="Upload custom franchisee CSV files"
-              >
-                <Upload className="h-3.5 w-3.5" />
-                <span>Upload franchisee CSV</span>
-              </button>
-            </div>
-
             {/* Club Health report action */}
             <button
               onClick={() => setShowReportModal(true)}
@@ -1050,11 +1011,188 @@ Resolute Education Operations Center. http://resolute.education
       <AnimatePresence>
         {showReportModal && (() => {
           const { start, end, duration } = getLeadDatesRange(activeClub.leadsData);
-          const contacted = getLocalContactedCount();
-          const currentRevenue = activeClub.activeMembersCount * pricePerLearner;
-          const targetRevenue = 70 * pricePerLearner;
-          const revenueGap = Math.max(0, targetRevenue - currentRevenue);
-          const monthsTillTarget = Math.max(0, Math.ceil((70 - activeClub.activeMembersCount) / 4.6));
+          
+          // Conversion rate calculations:
+          const contactRate = hqLeadsGenerated > 0 
+            ? Math.min(100, Number(((totalLeadsContacted / hqLeadsGenerated) * 100).toFixed(1))) 
+            : "0.0";
+
+          const contactedToMemberConversion = totalLeadsContacted > 0 
+            ? Math.min(100, Number(((totalLearnersAdded / totalLeadsContacted) * 100).toFixed(1))) 
+            : "0.0";
+
+          const hqToMemberConversion = hqLeadsGenerated > 0 
+            ? Math.min(100, Number(((totalLearnersAdded / hqLeadsGenerated) * 100).toFixed(1))) 
+            : "0.0";
+
+          const deducedPerStudent = clubTotalLearners > 0 
+            ? Math.round(totalAmountGenerated / clubTotalLearners) 
+            : 0;
+
+          const handlePrintCarlaReport = () => {
+            const reportHtmlContent = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Executive Club Health Report for Carla - ${activeClub.name} Territory</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap');
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background-color: #ffffff;
+      color: #0f172a;
+      margin: 0;
+      padding: 36px 20px;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      background: #ffffff;
+      border: 1px solid #cbd5e1;
+      border-radius: 12px;
+      padding: 32px;
+    }
+    .header {
+      border-bottom: 2px solid #313bf5;
+      padding-bottom: 18px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      margin: 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .subtitle {
+      color: #313bf5;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-top: 4px;
+    }
+    .grid {
+      display: grid;
+      grid-template-cols: repeat(2, 1fr);
+      gap: 14px;
+      margin-bottom: 20px;
+    }
+    .card {
+      background: #f8fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 10px;
+      padding: 16px;
+    }
+    .card-label {
+      font-size: 9px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #64748b;
+      letter-spacing: 0.5px;
+      margin-bottom: 4px;
+    }
+    .card-value {
+      font-size: 20px;
+      font-weight: 800;
+      color: #0f172a;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    .card-sub {
+      font-size: 10px;
+      color: #64748b;
+      margin-top: 4px;
+    }
+    .footer {
+      margin-top: 32px;
+      border-top: 1px solid #e2e8f0;
+      padding-top: 14px;
+      text-align: center;
+      font-size: 9px;
+      color: #94a3b8;
+      font-family: 'JetBrains Mono', monospace;
+    }
+    @media print {
+      body { padding: 0; }
+      .container { border: none; padding: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <div>
+        <h1 class="title">Executive Club Health Report</h1>
+        <div class="subtitle">Prepared for Carla &bull; ${activeClub.name} Territory</div>
+      </div>
+      <div style="text-align: right; font-family: 'JetBrains Mono', monospace; font-size: 10px; color: #64748b;">
+        <div>Date: <strong>${new Date().toISOString().split('T')[0]}</strong></div>
+        <div>Source: <strong>User Operational Inputs</strong></div>
+      </div>
+    </div>
+
+    <div class="grid">
+      <div class="card">
+        <div class="card-label">1. Club Territory</div>
+        <div class="card-value">${activeClub.name} Territory</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">2. Leads Generated by Resolute (HQ)</div>
+        <div class="card-value" style="color: #313bf5;">${hqLeadsGenerated} Leads</div>
+        <div class="card-sub">Base lead batch allocated by HQ</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">3. Leads Contacted by Franchisee</div>
+        <div class="card-value" style="color: #d97706;">${totalLeadsContacted} Leads</div>
+        <div class="card-sub">${contactRate}% outreach contact rate</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">4. Members Converted This Month</div>
+        <div class="card-value" style="color: #16a34a;">${totalLearnersAdded} Members</div>
+        <div class="card-sub">${contactedToMemberConversion}% conversion rate from contacted leads (${hqToMemberConversion}% overall HQ conversion)</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">5. Total Active Students</div>
+        <div class="card-value">${clubTotalLearners} Students</div>
+        <div class="card-sub">Active enrolled student headcount</div>
+      </div>
+
+      <div class="card">
+        <div class="card-label">6. Revenue This Month</div>
+        <div class="card-value" style="color: #16a34a;">${currencySymbol}${totalAmountGenerated.toLocaleString()}</div>
+        <div class="card-sub">Deduced average: ${currencySymbol}${deducedPerStudent}/student/mo</div>
+      </div>
+    </div>
+
+    <div class="footer">
+      CONFIDENTIAL EXECUTIVE REPORT FOR CARLA &bull; RESOLUTE EDUCATION
+    </div>
+  </div>
+</body>
+</html>`;
+
+            const printWin = window.open("", "_blank", "width=850,height=900");
+            if (printWin) {
+              printWin.document.write(reportHtmlContent);
+              printWin.document.close();
+              printWin.focus();
+              setTimeout(() => {
+                printWin.print();
+              }, 300);
+            } else {
+              window.print();
+            }
+          };
 
           return (
             <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -1078,105 +1216,72 @@ Resolute Education Operations Center. http://resolute.education
                 <div className="p-6 space-y-6 max-h-[70vh] overflow-y-auto font-sans">
                   
                   <div className="p-4 bg-brand-blue/10 border border-brand-blue/20 rounded-xl leading-relaxed text-xs">
-                    <span className="text-brand-cheddar font-extrabold uppercase text-[10px] block mb-1">Tuition Pricing Multiplier:</span>
-                    This report is automatically calibrated using your current custom tuition cost setting of <strong className="text-white">{currencySymbol}{pricePerLearner}/mo</strong> for <strong className="text-white">{activeClub.name} Node</strong>.
+                    <span className="text-brand-cheddar font-extrabold uppercase text-[10px] block mb-1">Operational Report Mode:</span>
+                    This executive report dynamically pulls directly from your manual operational inputs across the tabs for <strong className="text-white">{activeClub.name} Territory</strong>.
                   </div>
 
                   {/* High Level Metrics Board */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     
-                    {/* Club Name */}
+                    {/* Club Territory */}
                     <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">1. Club Preset Name</span>
-                      <span className="text-lg font-extrabold text-white font-sans">{activeClub.name} Node</span>
+                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">1. Club Territory</span>
+                      <span className="text-lg font-extrabold text-white font-sans">{activeClub.name} Territory</span>
                     </div>
 
-                    {/* Leads from CSV */}
-                    <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">2. Leads from CSV (HQ Generated)</span>
-                      <span className="text-lg font-mono font-bold text-brand-blue block">{activeClub.totalLeads} Leads</span>
-                      <div className="text-[10px] text-gray-500 mt-1 space-y-0.5">
-                        <p>Month Starting: <strong className="text-gray-400">{start}</strong></p>
-                        <p>Month Ending: <strong className="text-gray-400">{end}</strong></p>
-                        <p>Campaign Duration: <strong className="text-brand-coral">{duration}</strong></p>
+                    {/* Leads Generated by Resolute HQ */}
+                    <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
+                      <div>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">2. Leads Generated by Resolute (HQ)</span>
+                        <span className="text-lg font-mono font-bold text-brand-blue">{hqLeadsGenerated} Leads</span>
                       </div>
+                      <p className="text-[10px] text-gray-500 mt-1">
+                        Base lead batch allocated by HQ.
+                      </p>
                     </div>
 
-                    {/* Leads Contacted by Franchisee */}
+                    {/* Leads Contacted */}
                     <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
                       <div>
                         <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">3. Leads Contacted by Franchisee</span>
-                        <span className="text-lg font-mono font-bold text-brand-cheddar">{contacted} Leads</span>
+                        <span className="text-lg font-mono font-bold text-brand-cheddar">{totalLeadsContacted} Leads</span>
                       </div>
                       <p className="text-[10px] text-gray-500 mt-1">
-                        Manual follow-ups recorded by owner on dashboard.
+                        Outreach contact rate: <strong className="text-amber-400">{contactRate}%</strong> of HQ leads.
                       </p>
                     </div>
 
-                    {/* Conversion Rate */}
+                    {/* Members Converted */}
                     <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
                       <div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">4. Lead Conversion Rate</span>
-                        <span className="text-lg font-mono font-bold text-emerald-400">{computedConversionRate}%</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">4. Members Converted This Month</span>
+                        <span className="text-lg font-mono font-bold text-emerald-400">{totalLearnersAdded} Members</span>
                       </div>
                       <p className="text-[10px] text-gray-500 mt-1">
-                        Active student members divided by total HQ leads.
+                        Conversion rate: <strong className="text-emerald-400">{contactedToMemberConversion}%</strong> of contacted leads (<strong className="text-gray-300">{hqToMemberConversion}%</strong> of total HQ leads).
                       </p>
                     </div>
 
-                    {/* Number of Members */}
+                    {/* Current Students */}
                     <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
                       <div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">5. Current Active Members</span>
-                        <span className="text-lg font-mono font-bold text-white">{activeClub.activeMembersCount} Students</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">5. Current Total Active Students</span>
+                        <span className="text-lg font-mono font-bold text-white">{clubTotalLearners} Students</span>
                       </div>
                       <p className="text-[10px] text-gray-500 mt-1">
-                        Paid active enrollments.
+                        Active enrolled student headcount from operational input.
                       </p>
                     </div>
 
-                    {/* Average Pay */}
+                    {/* Revenue This Month */}
                     <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl flex flex-col justify-between">
                       <div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">6. Average Pay Per Student</span>
-                        <span className="text-lg font-mono font-bold text-brand-pink">{currencySymbol}{pricePerLearner} / month</span>
+                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">6. Revenue This Month</span>
+                        <span className="text-lg font-mono font-bold text-emerald-400">{currencySymbol}{totalAmountGenerated.toLocaleString()}</span>
                       </div>
                       <p className="text-[10px] text-gray-500 mt-1">
-                        Customizable pricing model parameter.
+                        Total monthly revenue (Deduced average: {currencySymbol}{deducedPerStudent}/student/mo).
                       </p>
-                    </div>
-
-                    {/* Revenue vs Target */}
-                    <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl col-span-1 md:col-span-2">
-                      <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">7. Monthly Revenue vs. Target</span>
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mt-1">
-                        <div>
-                          <span className="text-sm text-gray-400">Current MRR: </span>
-                          <span className="text-lg font-mono font-bold text-white">{currencySymbol}{currentRevenue.toLocaleString()}</span>
-                        </div>
-                        <div>
-                          <span className="text-sm text-gray-400">Target MRR (70 Students): </span>
-                          <span className="text-lg font-mono font-bold text-brand-cheddar">{currencySymbol}{targetRevenue.toLocaleString()}</span>
-                        </div>
-                      </div>
-                      <div className="border-t border-brand-blue/10 mt-2.5 pt-2 flex items-center justify-between text-[11px]">
-                        <span className="text-gray-500">Deficit Gap to Target:</span>
-                        <span className="font-mono font-bold text-brand-pink">{currencySymbol}{revenueGap.toLocaleString()} / month</span>
-                      </div>
-                    </div>
-
-                    {/* Months till Target */}
-                    <div className="bg-brand-onyx/20 border border-brand-blue/10 p-4 rounded-xl col-span-1 md:col-span-2 flex items-center justify-between">
-                      <div>
-                        <span className="text-[10px] text-gray-400 font-bold uppercase tracking-wider block mb-1">8. Duration Till Target Reached</span>
-                        <span className="text-lg font-mono font-bold text-white">{monthsTillTarget} Months</span>
-                        <p className="text-[10px] text-gray-500 mt-0.5">
-                          Calculated based on standard growth models with standard weekly target inputs.
-                        </p>
-                      </div>
-                      <div className="h-12 w-12 rounded-xl bg-brand-pink/10 border border-brand-pink/20 flex items-center justify-center font-mono font-bold text-brand-pink text-sm">
-                        {monthsTillTarget}m
-                      </div>
                     </div>
 
                   </div>
@@ -1193,40 +1298,38 @@ Resolute Education Operations Center. http://resolute.education
                       Close Preview
                     </button>
                     <button 
-                      onClick={downloadEverythingReport}
+                      onClick={handlePrintCarlaReport}
                       className="bg-brand-blue hover:bg-brand-zaffre text-white text-xs font-bold px-4 py-2 rounded-xl flex items-center gap-1.5 cursor-pointer transition-all hover:scale-105"
                     >
-                      <Download className="h-4 w-4" />
-                      <span>Download PDF Report</span>
+                      <Printer className="h-4 w-4" />
+                      <span>Print / PDF Report</span>
                     </button>
                   </div>
                 </div>
-
               </motion.div>
             </div>
           );
         })()}
       </AnimatePresence>
 
+      {/* Main App Canvas Wrapper */}
       <div className="max-w-7xl mx-auto px-6 py-8">
         
-        {/* Core Header Section */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 bg-[#10111C] border border-brand-blue/15 p-6 rounded-2xl relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-80 h-80 bg-brand-blue/5 rounded-full blur-3xl pointer-events-none" />
-          
+        {/* Core Header Section (Light Theme & Hidden in print) */}
+        <div className="no-print flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-8 bg-white border border-slate-200 p-6 rounded-2xl relative overflow-hidden shadow-sm">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
-              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-brand-cheddar bg-brand-cheddar/15 border border-brand-cheddar/25">
+              <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest text-brand-blue bg-blue-50 border border-blue-200">
                 Resolute Multi-Club Dashboard
               </span>
-              <span className="flex items-center gap-1 text-[10px] text-gray-400 font-mono">
+              <span className="flex items-center gap-1 text-[10px] text-slate-500 font-mono">
                 <Clock className="h-3 w-3 text-brand-pink" /> 2026 Season Model
               </span>
             </div>
-            <h1 className="text-2xl font-extrabold tracking-tight text-white font-sans">
+            <h1 className="text-2xl font-extrabold tracking-tight text-slate-900 font-sans">
               Franchise Operations Growth Model
             </h1>
-            <p className="text-xs text-gray-400">
+            <p className="text-xs text-slate-500">
               Select any logged club preset below, type a customized monthly tuition input, or upload parent interaction spreadsheets to track marketing campaigns.
             </p>
           </div>
@@ -1235,34 +1338,34 @@ Resolute Education Operations Center. http://resolute.education
           <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 shrink-0">
             
             <div className="relative">
-              <label className="block text-[10px] uppercase font-bold text-brand-coral mb-1 font-sans">Select Franchise Node</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 font-sans">Select Franchise Node</label>
               <div className="relative flex items-center">
-                <MapPin className="absolute left-3.5 h-4 w-4 text-brand-cheddar pointer-events-none z-10" />
+                <MapPin className="absolute left-3.5 h-4 w-4 text-amber-500 pointer-events-none z-10" />
                 <select
                   value={selectedClub}
                   onChange={(e) => handleClubChange(e.target.value)}
-                  className="bg-brand-onyx/40 border border-brand-blue/30 text-white rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none cursor-pointer focus:border-brand-cheddar/50 transition-all appearance-none relative z-0"
+                  className="bg-slate-50 border border-slate-300 text-slate-900 rounded-xl pl-10 pr-10 py-2.5 text-xs font-bold outline-none cursor-pointer focus:border-brand-blue transition-all appearance-none relative z-0"
                 >
                   {Object.keys(clubsData).map((clubKey) => (
-                    <option key={clubKey} className="bg-[#10111C]" value={clubKey}>
+                    <option key={clubKey} className="bg-white text-slate-900" value={clubKey}>
                       {clubsData[clubKey].name} Presets
                     </option>
                   ))}
                 </select>
-                <ChevronDown className="absolute right-3 h-4 w-4 text-gray-500 pointer-events-none" />
+                <ChevronDown className="absolute right-3 h-4 w-4 text-slate-400 pointer-events-none" />
               </div>
             </div>
 
             {/* Link copier generator tool */}
             <div>
-              <label className="block text-[10px] uppercase font-bold text-brand-coral mb-1 font-sans">Share Workspace State</label>
+              <label className="block text-[10px] uppercase font-bold text-slate-500 mb-1 font-sans">Share Workspace State</label>
               <button
                 onClick={copyShareLink}
-                className="flex items-center gap-2 bg-brand-blue hover:bg-brand-zaffre text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-brand-blue/10 justify-center h-10 w-full sm:w-auto transition-all cursor-pointer shadow-md shadow-brand-blue/10"
+                className="flex items-center gap-2 bg-brand-blue hover:bg-brand-zaffre text-white text-xs font-bold px-4 py-2.5 rounded-xl border border-brand-blue/10 justify-center h-10 w-full sm:w-auto transition-all cursor-pointer shadow-sm"
               >
                 {showCopyMessage ? (
                   <>
-                    <Check className="h-4 w-4 text-brand-cheddar" />
+                    <Check className="h-4 w-4 text-amber-300" />
                     <span>Copied!</span>
                   </>
                 ) : (
@@ -1277,70 +1380,28 @@ Resolute Education Operations Center. http://resolute.education
           </div>
         </div>
 
-        {/* Major Top Level KPI Cards (Updating dynamically with tuition price input) */}
-        <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mb-8">
-          <MetricCard
-            title={`${activeClub.name} total leads`}
-            value={`${activeClub.totalLeads} Leads`}
-            change="Inbound Size"
-            isPositive={true}
-            subtitle="Whole client pipeline size"
-            iconName="Users"
-            glowColor="#313BF5"
-          />
-          <MetricCard
-            title={`${activeClub.name} paying members`}
-            value={`${activeClub.activeMembersCount} Registrations`}
-            change={`MRR: ${currencySymbol}${computedActiveMRR.toLocaleString()}`}
-            isPositive={true}
-            subtitle={`At custom ${currencySymbol}${pricePerLearner}/mo price option`}
-            iconName="Briefcase"
-            glowColor="#E8596D"
-          />
-          <MetricCard
-            title={`${activeClub.name} conversion`}
-            value={`${computedConversionRate}%`}
-            change="Close Rate"
-            isPositive={true}
-            subtitle="Inbound conversion speed"
-            iconName="Percent"
-            glowColor="#FFB100"
-          />
-          <MetricCard
-            title={`${activeClub.name} holiday leads`}
-            value={`${activeClub.holidayLeadsCount} Leads`}
-            change={`${activeClub.campaignStats?.holidayCampaignLeads || activeClub.holidayLeadsCount} Holidays`}
-            isPositive={true}
-            subtitle="Winter & Holiday promotion captures"
-            iconName="Calendar"
-            glowColor="#313BF5"
-          />
-        </section>
-
-        {/* Tab Selection Row (Incorporates new Active Members Board Tab) */}
-        <div className="flex border-b border-brand-blue/10 gap-1.5 mb-8 overflow-x-auto pb-px">
-          {(["acquisition", "finance", "retention", "members", "audit"] as const).map((tab) => {
-            const labels = {
-              acquisition: { label: "Funnel & Conversion Flow", icon: TrendingUp },
-              finance: { label: "Financial Projections (CFO)", icon: FileText },
-              retention: { label: "Communication Ratios", icon: ShieldAlert },
-              members: { label: "Active Members Directory", icon: BookOpen },
-              audit: { label: "Lead Database Explorer", icon: Database }
-            };
-            const Icon = labels[tab].icon;
-            const active = activeTab === tab;
+        {/* Main Tab Selection Row (Hidden in print) */}
+        <div className="no-print flex border-b border-slate-200 gap-1.5 mb-8 overflow-x-auto pb-px">
+          {[
+            { id: "buildReport", label: "Build Total Report", icon: FileText },
+            { id: "executive", label: "This Month's Overview", icon: Award },
+            { id: "members", label: "Active Monthly Members", icon: BookOpen },
+            { id: "retention", label: "Leads Contacted This Month", icon: Phone }
+          ].map((tab) => {
+            const Icon = tab.icon;
+            const active = activeTab === tab.id;
             return (
               <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id as any)}
                 className={`flex items-center gap-2 px-4 py-3 text-xs font-semibold uppercase tracking-wider transition-all outline-none rounded-t-xl shrink-0 cursor-pointer ${
                   active 
-                    ? "bg-brand-blue/10 text-white border-b-2 border-brand-blue font-extrabold" 
-                    : "text-gray-500 hover:text-white hover:bg-brand-blue/5"
+                    ? "bg-brand-blue text-white font-extrabold shadow-sm" 
+                    : "text-slate-600 hover:text-slate-900 hover:bg-slate-100"
                 }`}
               >
                 <Icon className="h-4 w-4" />
-                <span>{labels[tab].label}</span>
+                <span>{tab.label}</span>
               </button>
             );
           })}
@@ -1350,33 +1411,50 @@ Resolute Education Operations Center. http://resolute.education
         <main className="mb-10">
           <AnimatePresence mode="wait">
             <motion.div
-              key={`${activeTab}-${selectedClub}-${pricePerLearner}`} // Refresh components on input variables
-              initial={{ opacity: 0, x: -8 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: 8 }}
+              key={`${activeTab}-${selectedClub}-${pricePerLearner}`}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
               transition={{ duration: 0.12 }}
             >
-              {activeTab === "acquisition" && (
-                <FunnelChartComponent
-                  totalLeads={activeClub.totalLeads}
-                  totalTrials={activeClub.totalTrialsCount}
-                  activeMembers={activeClub.activeMembersCount}
-                />
-              )}
-
-              {activeTab === "finance" && (
-                <RevenueProjections
-                  currentMembers={activeClub.activeMembersCount}
-                  currentActiveMRR={computedActiveMRR}
-                  unconvertedTrials={activeClub.unconvertedTrials}
-                  pricePerLearner={pricePerLearner}
+              {activeTab === "buildReport" && (
+                <TotalHealthReport
+                  clubName={activeClub.name}
                   currencySymbol={currencySymbol}
+                  hqLeadsGenerated={hqLeadsGenerated}
+                  setHqLeadsGenerated={setHqLeadsGenerated}
+                  totalLearnersAdded={totalLearnersAdded}
+                  setTotalLearnersAdded={setTotalLearnersAdded}
+                  totalLeadsContacted={totalLeadsContacted}
+                  setTotalLeadsContacted={setTotalLeadsContacted}
+                  totalFreeTrials={totalFreeTrials}
+                  setTotalFreeTrials={setTotalFreeTrials}
+                  totalAmountGenerated={totalAmountGenerated}
+                  setTotalAmountGenerated={setTotalAmountGenerated}
+                  clubTotalLearners={clubTotalLearners}
+                  setClubTotalLearners={setClubTotalLearners}
+                  yearTargetStudents={yearTargetStudents}
+                  setYearTargetStudents={setYearTargetStudents}
+                  yearTargetRevenue={yearTargetRevenue}
+                  setYearTargetRevenue={setYearTargetRevenue}
+                  revenueToDate={revenueToDate}
+                  setRevenueToDate={setRevenueToDate}
+                  studentsToDate={studentsToDate}
+                  setStudentsToDate={setStudentsToDate}
                 />
               )}
 
-              {activeTab === "retention" && (
-                <ChannelAnalysis
-                  conversationsSummary={activeClub.recordedTouchesSummary}
+              {activeTab === "executive" && (
+                <ExecutiveDashboard
+                  clubName={activeClub.name}
+                  currencySymbol={currencySymbol}
+                  onResetApp={() => {
+                    setClubsData(INITIAL_CLUBS_CONFIG);
+                    setPricePerLearner(1200);
+                    setShowNotification("🔄 App restarted! Reset to fresh baseline state (11 Active Members).");
+                  }}
+                  onUploadLeadsCSV={() => leadsFileInputRef.current?.click()}
+                  onUploadMembersCSV={() => membersFileInputRef.current?.click()}
                 />
               )}
 
@@ -1385,37 +1463,39 @@ Resolute Education Operations Center. http://resolute.education
                   pricePerLearner={pricePerLearner}
                   clubName={activeClub.name}
                   currencySymbol={currencySymbol}
+                  membersData={activeClub.membersData}
+                  crossMatchSummary={activeClub.crossMatchSummary}
+                  onUploadMembersCSV={() => membersFileInputRef.current?.click()}
+                  onUploadLeadsCSV={() => leadsFileInputRef.current?.click()}
                 />
               )}
 
-              {activeTab === "audit" && (
-                <LeadExplorer 
-                  leadsData={activeClub.leadsData} 
-                  clubName={activeClub.name} 
-                  onAddLead={handleAddWeeklyLead}
+              {activeTab === "retention" && (
+                <ChannelAnalysis
+                  conversationsSummary={activeClub.recordedTouchesSummary}
+                  totalLeadsContacted={totalLeadsContacted}
+                  setTotalLeadsContacted={setTotalLeadsContacted}
                 />
               )}
             </motion.div>
           </AnimatePresence>
         </main>
 
-        {/* Famous Kobe Bryant Saying Footer Panel */}
-        <section className="mt-14 mb-8 bg-brand-blue/5 border border-brand-blue/10 rounded-2xl p-5 relative overflow-hidden text-center max-w-4xl mx-auto font-sans">
-          <div className="absolute -top-10 -left-10 w-24 h-24 bg-brand-cheddar/5 rounded-full blur-xl pointer-events-none" />
-          <div className="absolute -bottom-10 -right-10 w-24 h-24 bg-brand-pink/5 rounded-full blur-xl pointer-events-none" />
-          <Quote className="h-6 w-6 text-brand-cheddar mx-auto mb-2 opacity-60" />
-          <p className="text-sm font-sans italic font-medium text-white max-w-2xl mx-auto leading-relaxed">
+        {/* Famous Kobe Bryant Saying Footer Panel (Hidden in print) */}
+        <section className="no-print mt-14 mb-8 bg-blue-50/50 border border-blue-100 rounded-2xl p-5 relative overflow-hidden text-center max-w-4xl mx-auto font-sans shadow-sm">
+          <Quote className="h-6 w-6 text-amber-500 mx-auto mb-2 opacity-80" />
+          <p className="text-sm font-sans italic font-medium text-slate-800 max-w-2xl mx-auto leading-relaxed">
             "Those times when you get up early and you work hard, those times when you stay up late and you work hard, those times when you don't feel like working, you're too tired, you don't want to push yourself, but you do it anyway. That is actually the dream."
           </p>
-          <span className="block mt-2.5 text-xs text-brand-cheddar uppercase tracking-widest font-black">
+          <span className="block mt-2.5 text-xs text-amber-700 uppercase tracking-widest font-black">
             — Kobe Bryant (Mamba Mentality)
           </span>
         </section>
 
-        {/* Footer Credit */}
-        <footer className="text-center text-[10px] text-gray-500 mt-12 flex items-center justify-between border-t border-brand-blue/10 pt-6">
+        {/* Footer Credit (Hidden in print) */}
+        <footer className="no-print text-center text-[10px] text-slate-500 mt-12 flex items-center justify-between border-t border-slate-200 pt-6">
           <span>Resolute Education &copy; 2026. Confidential Operations Group.</span>
-          <span>Google AI Studio Build &bull; High Contrast CI Active &bull; Presets Node V1.4</span>
+          <span>Google AI Studio Build &bull; High Contrast Light Theme &bull; Presets Node V1.4</span>
         </footer>
 
       </div>

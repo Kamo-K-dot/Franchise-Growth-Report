@@ -28,25 +28,19 @@ export default function MetricCard({
       initial={{ opacity: 0, y: 15 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}
-      style={{
-        boxShadow: `0 4px 20px rgba(0, 0, 0, 0.4), inset 0 0 12px ${glowColor}25`
-      }}
-      className="p-5 rounded-2xl bg-[rgba(26,27,38,0.7)] border border-brand-blue/20 backdrop-blur-xl relative overflow-hidden flex flex-col justify-between"
+      className="p-5 rounded-2xl bg-white border border-slate-200 shadow-sm relative overflow-hidden flex flex-col justify-between"
     >
-      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-brand-blue/10 to-transparent rounded-full blur-2xl pointer-events-none" />
+      <div className="absolute top-0 right-0 w-24 h-24 bg-gradient-to-br from-blue-50 to-transparent rounded-full blur-2xl pointer-events-none" />
       
       <div className="flex items-center justify-between mb-4">
-        <span className="text-xs uppercase tracking-wider text-gray-400 font-semibold">{title}</span>
-        <div 
-          className="p-2.5 rounded-xl bg-brand-blue/10 border border-brand-blue/20 text-brand-blue"
-          style={{ textShadow: `0 0 10px ${glowColor}40` }}
-        >
+        <span className="text-xs uppercase tracking-wider text-slate-500 font-bold">{title}</span>
+        <div className="p-2.5 rounded-xl bg-blue-50 border border-blue-200 text-brand-blue">
           {IconComponent && <IconComponent className="h-5 w-5" />}
         </div>
       </div>
 
       <div>
-        <h3 className="text-3xl font-bold tracking-tight text-white font-sans flex items-baseline gap-1.5">
+        <h3 className="text-3xl font-bold tracking-tight text-slate-900 font-sans flex items-baseline gap-1.5">
           {value}
         </h3>
         
@@ -54,13 +48,13 @@ export default function MetricCard({
           {change && (
             <span className={`text-xs font-semibold px-2 py-0.5 rounded-full flex items-center gap-0.5 ${
               isPositive 
-                ? "bg-brand-cheddar/10 text-brand-cheddar border border-brand-cheddar/20" 
-                : "bg-brand-pink/10 text-brand-pink border border-brand-pink/20"
+                ? "bg-amber-50 text-amber-800 border border-amber-200" 
+                : "bg-rose-50 text-rose-700 border border-rose-200"
             }`}>
               {isPositive ? "↑" : "↓"} {change}
             </span>
           )}
-          <span className="text-[11px] text-brand-coral font-medium font-sans">{subtitle}</span>
+          <span className="text-[11px] text-slate-500 font-medium font-sans">{subtitle}</span>
         </div>
       </div>
     </motion.div>

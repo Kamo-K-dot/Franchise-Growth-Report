@@ -41,19 +41,35 @@ import { LEAD_BOARD_DATA_COMPACT } from "../data";
 interface LeadExplorerProps {
   leadsData?: any[];
   clubName?: string;
+  currencySymbol?: string;
+  membersData?: any[];
+  crossMatchSummary?: any;
   onAddLead?: (newLead: any) => void;
+  onUploadLeadsCSV?: () => void;
+  onUploadMembersCSV?: () => void;
 }
 
 export default function LeadExplorer({ 
   leadsData = LEAD_BOARD_DATA_COMPACT, 
   clubName = "Alberton",
-  onAddLead 
+  currencySymbol = "R",
+  membersData = [],
+  crossMatchSummary,
+  onAddLead,
+  onUploadLeadsCSV,
+  onUploadMembersCSV
 }: LeadExplorerProps) {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedGroup, setSelectedGroup] = useState<string>("All");
   const [showExplanation, setShowExplanation] = useState(false);
   const [showAddLeadForm, setShowAddLeadForm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
+
+  // Advanced Multi-CSV Lead Differentiation Filters
+  const [contactStatusFilter, setContactStatusFilter] = useState<string>("All");
+  const [channelFilter, setChannelFilter] = useState<string>("All");
+  const [touchFrequencyFilter, setTouchFrequencyFilter] = useState<string>("All");
+  const [conversionFilter, setConversionFilter] = useState<string>("All");
 
   // Active database segment views: "automation" (Resolute Automation Pool) vs "internal" (Franchisee Contacted)
   const [activeTab, setActiveTab] = useState<"automation" | "internal">("automation");
@@ -321,17 +337,53 @@ export default function LeadExplorer({
     const dayNum = parseInt(leadDateStr.split("-")[2]) || 15;
     
     if (dateAddedFilter === "This Week") {
-      // Days 19 to 26 of June
       matchesDate = (dayNum >= 19 && dayNum <= 26);
     } else if (dateAddedFilter === "This Month") {
-      // June 1 to June 26
       matchesDate = (dayNum >= 1);
     } else if (dateAddedFilter === "Past Quarter") {
-      // past quarter (everything loaded)
       matchesDate = true;
     }
 
-    return matchesSearch && matchesTab && matchesSegment && matchesDate;
+    // Contacted Status filtering
+    const isContacted = lead.isContacted || franchiseeContactedKeys.includes(key) || groupId === 1 || groupId === 4 || groupId === 6 || groupId === 7;
+    let matchesContactStatus = true;
+    if (contactStatusFilter === "Contacted") {
+      matchesContactStatus = isContacted;
+    } else if (contactStatusFilter === "Uncontacted") {
+      matchesContactStatus = !isContacted;
+    }
+
+    // Channel filtering
+    let matchesChannel = true;
+    if (channelFilter !== "All") {
+      matchesChannel = (mode.toLowerCase() === channelFilter.toLowerCase());
+    }
+
+    // Touch Frequency filtering
+    const touches = lead.touchCount || (isContacted ? 1 : 0);
+    let matchesTouches = true;
+    if (touchFrequencyFilter === "0 Touches") {
+      matchesTouches = (touches === 0);
+    } else if (touchFrequencyFilter === "1 Touch") {
+      matchesTouches = (touches === 1);
+    } else if (touchFrequencyFilter === "2 Touches") {
+      matchesTouches = (touches === 2);
+    } else if (touchFrequencyFilter === "3-4 Touches") {
+      matchesTouches = (touches >= 3 && touches <= 4);
+    } else if (touchFrequencyFilter === "5+ Touches") {
+      matchesTouches = (touches >= 5);
+    }
+
+    // Conversion filter (Matched Club Members)
+    const isMember = lead.isMatchedMember || groupId === 6 || groupId === 7;
+    let matchesConversion = true;
+    if (conversionFilter === "Matched Members Only") {
+      matchesConversion = isMember;
+    } else if (conversionFilter === "Unconverted Leads Only") {
+      matchesConversion = !isMember;
+    }
+
+    return matchesSearch && matchesTab && matchesSegment && matchesDate && matchesContactStatus && matchesChannel && matchesTouches && matchesConversion;
   });
 
   const handleSubmitLead = (e: React.FormEvent) => {
@@ -701,7 +753,7 @@ export default function LeadExplorer({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    triggerNotification("Executive PDF-Ready Lead Explorer report generated and downloaded successfully!");
+    alert("Executive Lead Explorer report generated and downloaded successfully!");
   };
 
   // Generate real data points for Resolute HQ vs Franchisee discrepancy graph over 6 weeks
@@ -722,24 +774,24 @@ export default function LeadExplorer({
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 text-slate-900">
       
       {/* Dynamic HQ vs Franchisee Contact Discrepancy Graphic Section */}
-      <div className="bg-[#121320] border border-brand-blue/15 rounded-2xl p-5 shadow-xl">
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-brand-blue/10 pb-4 mb-4">
+      <div className="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-200 pb-4 mb-4">
           <div>
-            <span className="block text-xs font-black uppercase text-white flex items-center gap-1.5">
-              <TrendingUp className="h-4 w-4 text-brand-pink" />
+            <span className="block text-xs font-black uppercase text-slate-900 flex items-center gap-1.5">
+              <TrendingUp className="h-4 w-4 text-rose-600" />
               HQ Automation vs. Franchisee Personal Contact Discrepancy
             </span>
-            <span className="text-[10px] text-gray-400">
+            <span className="text-[10px] text-slate-500">
               Demonstrates the operational follow-up lag where Resolute HQ triggers automation, but local owners miss manual hand-offs.
             </span>
           </div>
 
           <button 
             onClick={() => setShowExportModal(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black rounded-lg bg-brand-pink hover:bg-brand-popstar text-white transition-all cursor-pointer shadow-md"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-black rounded-lg bg-rose-600 hover:bg-rose-700 text-white transition-all cursor-pointer shadow-sm"
           >
             <FileText className="h-3.5 w-3.5" />
             <span>Export Report to Carla</span>
@@ -751,47 +803,47 @@ export default function LeadExplorer({
           <div className="lg:col-span-2 h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <LineChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1F2937" />
-                <XAxis dataKey="week" stroke="#9CA3AF" style={{ fontSize: "9px" }} />
-                <YAxis stroke="#9CA3AF" style={{ fontSize: "9px" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" opacity={0.6} />
+                <XAxis dataKey="week" stroke="#64748b" style={{ fontSize: "9px" }} />
+                <YAxis stroke="#64748b" style={{ fontSize: "9px" }} />
                 <RechartsTooltip 
-                  contentStyle={{ backgroundColor: "#121320", borderColor: "rgba(49,59,245,0.3)", borderRadius: "12px" }}
-                  labelStyle={{ color: "#E8596D", fontWeight: "bold", fontSize: "10px" }}
-                  itemStyle={{ fontSize: "10px", color: "#fff" }}
+                  contentStyle={{ backgroundColor: "#ffffff", borderColor: "#cbd5e1", borderRadius: "12px", color: "#0f172a" }}
+                  labelStyle={{ color: "#e11d48", fontWeight: "bold", fontSize: "10px" }}
+                  itemStyle={{ fontSize: "10px", color: "#0f172a" }}
                 />
                 <Legend wrapperStyle={{ fontSize: "10px" }} />
-                <Line type="monotone" dataKey="HQ Automated Outreach" stroke="#313BF5" strokeWidth={3} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="Franchisee Personal Touches" stroke="#FFB100" strokeWidth={3} />
-                <Line type="monotone" dataKey="Discrepancy Gap" stroke="#E8596D" strokeWidth={1.5} strokeDasharray="5 5" />
+                <Line type="monotone" dataKey="HQ Automated Outreach" stroke="#2563eb" strokeWidth={3} activeDot={{ r: 6 }} />
+                <Line type="monotone" dataKey="Franchisee Personal Touches" stroke="#d97706" strokeWidth={3} />
+                <Line type="monotone" dataKey="Discrepancy Gap" stroke="#e11d48" strokeWidth={1.5} strokeDasharray="5 5" />
               </LineChart>
             </ResponsiveContainer>
           </div>
 
           {/* High-impact narrative metric card */}
-          <div className="bg-brand-onyx/20 border border-brand-blue/10 rounded-xl p-4 space-y-3.5">
+          <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3.5">
             <div className="space-y-1">
-              <span className="block text-[10px] uppercase text-gray-400 font-bold">Unattended Lead Gap</span>
+              <span className="block text-[10px] uppercase text-slate-500 font-bold">Unattended Lead Gap</span>
               <div className="flex items-baseline gap-1.5">
-                <span className="text-3xl font-black text-brand-pink font-mono">{totalLeadsCount - contactedCount}</span>
-                <span className="text-xs text-gray-500">leads missing personal touch</span>
+                <span className="text-3xl font-black text-rose-600 font-mono">{totalLeadsCount - contactedCount}</span>
+                <span className="text-xs text-slate-500">leads missing personal touch</span>
               </div>
             </div>
 
             <div className="space-y-1">
               <div className="flex justify-between text-[10px] font-bold">
-                <span className="text-gray-400">Franchisee Touch Rate:</span>
-                <span className="text-brand-cheddar">{((contactedCount / totalLeadsCount) * 100).toFixed(0)}%</span>
+                <span className="text-slate-500">Franchisee Touch Rate:</span>
+                <span className="text-amber-700 font-bold">{((contactedCount / totalLeadsCount) * 100).toFixed(0)}%</span>
               </div>
-              <div className="w-full h-1.5 bg-brand-onyx rounded-full overflow-hidden">
+              <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                 <div 
-                  className="h-full bg-brand-cheddar rounded-full" 
+                  className="h-full bg-amber-500 rounded-full" 
                   style={{ width: `${(contactedCount / totalLeadsCount) * 100}%` }}
                 />
               </div>
             </div>
 
-            <p className="text-[10px] text-gray-400 leading-normal">
-              ⚠️ <strong>COO Discrepancy Insight:</strong> HQ has successfully launched automated outreach to all {totalLeadsCount} active leads. However, the franchisee has only initiated personal contact with {contactedCount} of them ({((contactedCount / totalLeadsCount) * 100).toFixed(0)}%). This {100 - Math.round((contactedCount / totalLeadsCount) * 100)}% contact gap is a critical conversion bottleneck!
+            <p className="text-[10px] text-slate-600 leading-normal">
+              ⚠️ <strong>COO Discrepancy Insight:</strong> HQ has launched automated outreach to all {totalLeadsCount} active leads. However, the franchisee has only initiated personal contact with {contactedCount} of them ({((contactedCount / totalLeadsCount) * 100).toFixed(0)}%). This {100 - Math.round((contactedCount / totalLeadsCount) * 100)}% contact gap is a critical conversion bottleneck!
             </p>
           </div>
         </div>
@@ -799,33 +851,33 @@ export default function LeadExplorer({
 
       {/* Export Report Dialog modal */}
       {showExportModal && (
-        <div className="fixed inset-0 bg-brand-onyx/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <motion.div 
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-[#121320] border border-brand-blue/30 max-w-lg w-full p-6 rounded-2xl shadow-2xl space-y-4"
+            className="bg-white border border-slate-200 max-w-lg w-full p-6 rounded-2xl shadow-2xl space-y-4"
           >
-            <div className="flex justify-between items-start border-b border-brand-blue/10 pb-3">
+            <div className="flex justify-between items-start border-b border-slate-200 pb-3">
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-wider">Operational Follow-up Discrepancy Report</h4>
-                <p className="text-[10px] text-gray-400">Ready to transmit to Carla (coo@resolute.education)</p>
+                <h4 className="text-sm font-black text-slate-900 uppercase tracking-wider">Operational Follow-up Discrepancy Report</h4>
+                <p className="text-[10px] text-slate-500">Ready to transmit to Carla (coo@resolute.education)</p>
               </div>
               <button 
                 onClick={() => setShowExportModal(false)}
-                className="text-gray-500 hover:text-white font-bold font-mono text-sm"
+                className="text-slate-400 hover:text-slate-700 font-bold font-mono text-sm"
               >
                 ✕
               </button>
             </div>
 
-            <div className="bg-brand-onyx/30 p-4 rounded-xl border border-brand-blue/10 space-y-3 text-xs text-gray-300">
-              <div className="flex justify-between border-b border-white/5 pb-1 font-bold text-white uppercase text-[10px]">
+            <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 space-y-3 text-xs text-slate-700">
+              <div className="flex justify-between border-b border-slate-200 pb-1 font-bold text-slate-900 uppercase text-[10px]">
                 <span>Analytical Parameter</span>
                 <span>Active Database metrics</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Active Leads Generated by HQ (Alberton)</span>
-                <span className="font-mono text-white font-bold">{totalLeadsCount}</span>
+                <span className="font-mono text-slate-900 font-bold">{totalLeadsCount}</span>
               </div>
               <div className="flex justify-between">
                 <span>HQ Automated Outreach Sequences Executed</span>
@@ -833,22 +885,22 @@ export default function LeadExplorer({
               </div>
               <div className="flex justify-between">
                 <span>Franchisee Personal Manual Follow-ups</span>
-                <span className="font-mono text-brand-cheddar font-bold">{contactedCount} leads</span>
+                <span className="font-mono text-amber-700 font-bold">{contactedCount} leads</span>
               </div>
-              <div className="flex justify-between border-t border-white/5 pt-1.5 font-bold">
-                <span className="text-brand-pink">Critical Outreach Discrepancy Gap</span>
-                <span className="font-mono text-brand-pink text-sm">{totalLeadsCount - contactedCount} ({((1 - contactedCount / totalLeadsCount) * 100).toFixed(0)}%)</span>
+              <div className="flex justify-between border-t border-slate-200 pt-1.5 font-bold">
+                <span className="text-rose-600">Critical Outreach Discrepancy Gap</span>
+                <span className="font-mono text-rose-600 text-sm">{totalLeadsCount - contactedCount} ({((1 - contactedCount / totalLeadsCount) * 100).toFixed(0)}%)</span>
               </div>
             </div>
 
-            <p className="text-[11px] text-gray-400 italic">
-              "Hi Carla, please find the franchise audit report attached. Although HQ is generating and warming leads through automation, Alberton is failing to apply the manual personal touches required to secure the signed registrations. This graphic confirms the gap is at 80%+."
+            <p className="text-[11px] text-slate-500 italic">
+              "Hi Carla, please find the franchise audit report attached. Although HQ is generating and warming leads through automation, Alberton is failing to apply the manual personal touches required to secure the signed registrations."
             </p>
 
             <div className="flex justify-end gap-3 pt-2">
               <button 
                 onClick={() => setShowExportModal(false)}
-                className="bg-brand-onyx border border-white/10 text-xs font-bold text-gray-400 px-4 py-2 rounded-xl cursor-pointer"
+                className="bg-slate-100 border border-slate-200 text-xs font-bold text-slate-600 px-4 py-2 rounded-xl cursor-pointer hover:bg-slate-200"
               >
                 Cancel
               </button>
@@ -857,7 +909,7 @@ export default function LeadExplorer({
                   alert(`Discrepancy Report exported successfully to Carla! Transmitted ${totalLeadsCount} lead analytical records.`);
                   setShowExportModal(false);
                 }}
-                className="bg-brand-pink hover:bg-brand-popstar text-xs font-black text-white px-5 py-2 rounded-xl shadow-md cursor-pointer"
+                className="bg-rose-600 hover:bg-rose-700 text-xs font-black text-white px-5 py-2 rounded-xl shadow-md cursor-pointer"
               >
                 Transmit Report
               </button>
@@ -867,10 +919,10 @@ export default function LeadExplorer({
       )}
 
       {/* Upper header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 pb-3 border-b border-brand-blue/10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-3 pb-3 border-b border-slate-200">
         <div>
-          <h3 className="text-sm uppercase tracking-wider text-brand-cheddar font-bold mb-1">Operational Alumni &amp; Lead Explorer</h3>
-          <p className="text-xs text-gray-400">Audit raw database cohorts, filter by custom group segment or append new client entries for this week</p>
+          <h3 className="text-sm uppercase tracking-wider text-amber-600 font-bold mb-1">Operational Alumni &amp; Lead Explorer</h3>
+          <p className="text-xs text-slate-500">Audit raw database cohorts, filter by custom group segment or append new client entries for this week</p>
         </div>
 
         {/* Action Button Suite */}
@@ -878,7 +930,7 @@ export default function LeadExplorer({
           {/* Add Weekly Lead Trigger */}
           <button 
             onClick={() => setShowAddLeadForm(!showAddLeadForm)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-brand-blue/20 bg-brand-blue/10 hover:bg-brand-blue/20 text-brand-blue hover:text-white transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-brand-blue transition-all cursor-pointer"
           >
             <PlusCircle className="h-4 w-4" />
             <span>Incremental Lead</span>
@@ -887,16 +939,16 @@ export default function LeadExplorer({
           {/* Definition details */}
           <button 
             onClick={() => setShowExplanation(!showExplanation)}
-            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 text-gray-300 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg border border-slate-200 bg-slate-50 hover:bg-slate-100 text-slate-700 transition-all cursor-pointer"
           >
-            <HelpCircle className="h-4 w-4 text-brand-pink" />
+            <HelpCircle className="h-4 w-4 text-rose-600" />
             <span>Outreach Guide</span>
           </button>
 
           {/* PDF Download Trigger */}
           <button 
             onClick={handleDownloadCSV}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-brand-blue hover:bg-brand-zaffre text-white shadow-md hover:shadow-brand-blue/20 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-brand-blue hover:bg-brand-zaffre text-white shadow-sm transition-all cursor-pointer"
           >
             <Download className="h-4 w-4" />
             <span>Download PDF Report</span>
@@ -909,77 +961,77 @@ export default function LeadExplorer({
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="bg-brand-onyx/30 border border-brand-blue/20 rounded-xl p-5"
+          className="bg-white border border-slate-200 rounded-xl p-5 shadow-sm"
         >
           <form onSubmit={handleSubmitLead} className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div className="sm:col-span-3 pb-1 border-b border-brand-blue/10">
-              <span className="text-xs font-bold text-white block">Log Lead Intercept (Prevents Monthly Upload Data Loss)</span>
-              <span className="text-[10px] text-gray-400">Manually insert new inquiries received during weekly ad runs.</span>
+            <div className="sm:col-span-3 pb-1 border-b border-slate-200">
+              <span className="text-xs font-bold text-slate-900 block">Log Lead Intercept (Prevents Monthly Upload Data Loss)</span>
+              <span className="text-[10px] text-slate-500">Manually insert new inquiries received during weekly ad runs.</span>
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Parent Name *</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Parent Name *</label>
               <input 
                 type="text" 
                 required
                 placeholder="Sandra Naidoo"
                 value={newParentName}
                 onChange={(e) => setNewParentName(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Child Name *</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Child Name *</label>
               <input 
                 type="text" 
                 required
                 placeholder="Liam"
                 value={newChildName}
                 onChange={(e) => setNewChildName(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Child Age</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Child Age</label>
               <input 
                 type="number" 
                 placeholder="e.g. 9"
                 value={newAge}
                 onChange={(e) => setNewAge(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">School Name</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">School Name</label>
               <input 
                 type="text" 
                 placeholder="e.g. Reddam House"
                 value={newSchool}
                 onChange={(e) => setNewSchool(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Residence Area / City</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Residence Area / City</label>
               <input 
                 type="text" 
                 placeholder="e.g. Brackendowns"
                 value={newArea}
                 onChange={(e) => setNewArea(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               />
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Group Cohort</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Group Cohort</label>
               <select 
                 value={newGroup}
                 onChange={(e) => setNewGroup(Number(e.target.value))}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/40"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue"
               >
                 <option value={1}>Contacted waiting for response (Group 1)</option>
                 <option value={0}>Winter Holiday Camp Leads (Group 0)</option>
@@ -990,11 +1042,11 @@ export default function LeadExplorer({
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Mode of Contact</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Mode of Contact</label>
               <select 
                 value={newContactMode}
                 onChange={(e) => setNewContactMode(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none"
               >
                 <option value="WhatsApp">WhatsApp</option>
                 <option value="Phone Call">Phone Call</option>
@@ -1005,13 +1057,13 @@ export default function LeadExplorer({
             </div>
 
             <div className="sm:col-span-2">
-              <label className="block text-[10px] font-bold text-gray-400 mb-1">Interaction Comments / Notes</label>
+              <label className="block text-[10px] font-bold text-slate-600 mb-1">Interaction Comments / Notes</label>
               <input 
                 type="text" 
                 placeholder="e.g. Replied to Facebook Ad. Prefers weekend slots."
                 value={newComments}
                 onChange={(e) => setNewComments(e.target.value)}
-                className="w-full bg-brand-onyx border border-brand-blue/15 px-3 py-2 rounded-xl text-xs text-white outline-none"
+                className="w-full bg-slate-50 border border-slate-300 px-3 py-2 rounded-xl text-xs text-slate-900 outline-none"
               />
             </div>
 
@@ -1019,7 +1071,7 @@ export default function LeadExplorer({
               <button 
                 type="button"
                 onClick={() => setShowAddLeadForm(false)}
-                className="bg-transparent hover:bg-white/5 border border-white/10 text-xs text-gray-400 rounded-xl px-4 py-2 font-bold cursor-pointer"
+                className="bg-slate-100 hover:bg-slate-200 border border-slate-300 text-xs text-slate-700 rounded-xl px-4 py-2 font-bold cursor-pointer"
               >
                 Cancel
               </button>
@@ -1039,34 +1091,34 @@ export default function LeadExplorer({
         <motion.div 
           initial={{ opacity: 0, height: 0 }}
           animate={{ opacity: 1, height: "auto" }}
-          className="mb-5 p-4 rounded-xl bg-brand-blue/5 border border-brand-blue/20 text-xs text-brand-coral space-y-2"
+          className="mb-5 p-4 rounded-xl bg-blue-50 border border-blue-200 text-xs text-slate-700 space-y-2"
         >
-          <div className="flex items-center gap-2 text-white font-bold">
-            <CheckCircle2 className="h-4 w-4 text-brand-cheddar font-bold" />
+          <div className="flex items-center gap-2 text-slate-900 font-bold">
+            <CheckCircle2 className="h-4 w-4 text-amber-600 font-bold" />
             <span>Outreach and Contact Mode Configuration</span>
           </div>
-          <p className="text-gray-300 leading-normal">
+          <p className="text-slate-600 leading-normal">
             For Resolute club franchises, we have upgraded our monitoring system. Old <strong>Opt-In</strong> tags are replaced with detailed <strong>Mode of Contact</strong> metrics to outline where parent messages originate (e.g. WhatsApp, Email, Call, SMS) and exactly <strong>When they were last reached</strong>.
           </p>
-          <p className="text-gray-400">
+          <p className="text-slate-500">
             Keep logs up to date by tracking callbacks directly. If a parent is booked for a weekend trial, log their Contact Mode as "Online Meeting" or "WhatsApp" to sustain clear visibility before marketing campaigns roll over.
           </p>
         </motion.div>
       )}
 
       {/* Operational segment creators & Filters */}
-      <div className="bg-[#121320] border border-brand-blue/15 p-4 rounded-2xl space-y-4 shadow-md">
+      <div className="bg-white border border-slate-200 p-4 rounded-2xl space-y-4 shadow-sm">
         
         {/* Row 1: Segment Creator */}
         <form onSubmit={handleCreateSegment} className="flex flex-col sm:flex-row gap-3 items-end">
           <div className="flex-1 w-full">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1">Create Custom Lead Segment</label>
+            <label className="block text-[10px] font-bold text-slate-600 uppercase mb-1">Create Custom Lead Segment</label>
             <input 
               type="text"
               placeholder="e.g. Winter Holiday Registration, Late Night Facebook Leads"
               value={customSegmentName}
               onChange={(e) => setCustomSegmentName(e.target.value)}
-              className="w-full bg-brand-onyx border border-brand-blue/15 px-3.5 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/50 font-sans"
+              className="w-full bg-slate-50 border border-slate-300 px-3.5 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue font-sans"
             />
           </div>
           <button 
@@ -1077,62 +1129,93 @@ export default function LeadExplorer({
           </button>
         </form>
 
-        {/* Row 2: Search and filtering controls */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+        {/* Row 2: Multi-dimensional Search and filtering controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-6 gap-3">
           
           {/* Search Input */}
           <div className="relative sm:col-span-2">
-            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
             <input 
               type="text" 
-              placeholder="Search parent, child, school, area, contact mode..." 
+              placeholder="Search parent, child, email, phone, school, area..." 
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-brand-onyx/30 border border-brand-blue/20 pl-10 pr-4 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/50 transition-colors"
+              className="w-full bg-slate-50 border border-slate-300 pl-10 pr-4 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue transition-colors"
             />
           </div>
 
-          {/* Segment Filter Dropdown */}
+          {/* Contact Status Filter */}
           <div className="relative">
-            <Filter className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+            <UserCheck className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <select 
-              value={selectedGroup}
-              onChange={(e) => setSelectedGroup(e.target.value)}
-              className="w-full bg-brand-onyx/30 border border-brand-blue/20 pl-10 pr-4 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/50 transition-all appearance-none cursor-pointer"
+              value={contactStatusFilter}
+              onChange={(e) => setContactStatusFilter(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-300 pl-10 pr-4 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue transition-all appearance-none cursor-pointer"
             >
-              {groups.map((group, index) => (
-                <option key={index} className="bg-[#1A1B26]" value={group}>
-                  Segment: {group}
-                </option>
-              ))}
+              <option value="All" className="bg-white text-slate-900">Status: All Leads</option>
+              <option value="Contacted" className="bg-white text-slate-900">Status: 📞 Contacted (1+ Touches)</option>
+              <option value="Uncontacted" className="bg-white text-slate-900">Status: ❌ Uncontacted (0 Touches)</option>
             </select>
           </div>
 
-          {/* Date Refinement filter */}
+          {/* Channel Filter */}
           <div className="relative">
-            <Calendar className="absolute left-3 top-2.5 h-4 w-4 text-gray-500" />
+            <MessageSquare className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
             <select 
-              value={dateAddedFilter}
-              onChange={(e) => setDateAddedFilter(e.target.value)}
-              className="w-full bg-brand-onyx/30 border border-brand-blue/20 pl-10 pr-4 py-2 rounded-xl text-xs text-white outline-none focus:border-brand-cheddar/50 transition-all appearance-none cursor-pointer"
+              value={channelFilter}
+              onChange={(e) => setChannelFilter(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-300 pl-10 pr-4 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue transition-all appearance-none cursor-pointer"
             >
-              <option value="All" className="bg-[#1A1B26]">Date: All Time</option>
-              <option value="This Week" className="bg-[#1A1B26]">Date: This Week's Leads</option>
-              <option value="This Month" className="bg-[#1A1B26]">Date: This Month's Leads</option>
-              <option value="Past Quarter" className="bg-[#1A1B26]">Date: Past Quarter</option>
+              <option value="All" className="bg-white text-slate-900">Channel: All Means</option>
+              <option value="WhatsApp" className="bg-white text-slate-900">Channel: 💬 WhatsApp</option>
+              <option value="Email" className="bg-white text-slate-900">Channel: 📧 Email Sent</option>
+              <option value="Phone Call" className="bg-white text-slate-900">Channel: 📱 Phone Call</option>
+              <option value="SMS" className="bg-white text-slate-900">Channel: 💬 SMS</option>
             </select>
           </div>
+
+          {/* Touch Frequency Filter */}
+          <div className="relative">
+            <Sliders className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <select 
+              value={touchFrequencyFilter}
+              onChange={(e) => setTouchFrequencyFilter(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-300 pl-10 pr-4 py-2 rounded-xl text-xs text-slate-900 outline-none focus:border-brand-blue transition-all appearance-none cursor-pointer"
+            >
+              <option value="All" className="bg-white text-slate-900">Frequency: All Touches</option>
+              <option value="0 Touches" className="bg-white text-slate-900">Frequency: 0 Touches</option>
+              <option value="1 Touch" className="bg-white text-slate-900">Frequency: 1 Touch</option>
+              <option value="2 Touches" className="bg-white text-slate-900">Frequency: 2 Touches</option>
+              <option value="3-4 Touches" className="bg-white text-slate-900">Frequency: 3-4 Touches</option>
+              <option value="5+ Touches" className="bg-white text-slate-900">Frequency: 5+ Touches</option>
+            </select>
+          </div>
+
+          {/* Member Conversion Filter */}
+          <div className="relative">
+            <Zap className="absolute left-3 top-2.5 h-4 w-4 text-slate-400" />
+            <select 
+              value={conversionFilter}
+              onChange={(e) => setConversionFilter(e.target.value)}
+              className="w-full bg-slate-50 border border-slate-300 pl-10 pr-4 py-2 rounded-xl text-xs text-amber-800 outline-none focus:border-brand-blue transition-all appearance-none cursor-pointer font-bold"
+            >
+              <option value="All" className="bg-white text-slate-900">Conversion: All Prospects</option>
+              <option value="Matched Members Only" className="bg-white text-amber-800">Conversion: ★ Paying Members Only</option>
+              <option value="Unconverted Leads Only" className="bg-white text-slate-700">Conversion: Unconverted Leads</option>
+            </select>
+          </div>
+
         </div>
       </div>
 
       {/* Segment Tab Switcher: Resolute Automated DB vs Franchisee Hand-off */}
-      <div className="flex border-b border-brand-blue/15">
+      <div className="flex border-b border-slate-200">
         <button
           onClick={() => setActiveTab("automation")}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 outline-none cursor-pointer ${
             activeTab === "automation" 
-              ? "border-brand-blue text-white" 
-              : "border-transparent text-gray-400 hover:text-white"
+              ? "border-brand-blue text-brand-blue font-bold" 
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
           <Zap className="h-4 w-4 text-brand-blue" />
@@ -1143,31 +1226,31 @@ export default function LeadExplorer({
           onClick={() => setActiveTab("internal")}
           className={`flex items-center gap-2 px-5 py-3 text-xs font-black uppercase tracking-wider transition-all border-b-2 outline-none cursor-pointer ${
             activeTab === "internal" 
-              ? "border-brand-cheddar text-white" 
-              : "border-transparent text-gray-400 hover:text-white"
+              ? "border-amber-600 text-amber-700 font-bold" 
+              : "border-transparent text-slate-500 hover:text-slate-900"
           }`}
         >
-          <UserCheck className="h-4 w-4 text-brand-cheddar" />
+          <UserCheck className="h-4 w-4 text-amber-600" />
           <span>Internal (Contacted by Franchisees) ({contactedCount})</span>
         </button>
       </div>
 
       {/* Database Explorer Status Bar */}
-      <div className="bg-brand-blue/5 border border-brand-blue/15 p-2 rounded-xl flex flex-col sm:flex-row items-center justify-between text-xs text-gray-300 px-4 gap-2">
-        <span className="flex items-center gap-1.5 text-gray-400">
-          <Clock className="h-3.5 w-3.5 text-brand-coral" />
+      <div className="bg-slate-50 border border-slate-200 p-2 rounded-xl flex flex-col sm:flex-row items-center justify-between text-xs text-slate-600 px-4 gap-2">
+        <span className="flex items-center gap-1.5 text-slate-500">
+          <Clock className="h-3.5 w-3.5 text-slate-400" />
           Showing leads matching search criteria in the selected segment.
         </span>
-        <span className="font-mono text-gray-400 font-medium">
-          Records Found: <strong className="text-brand-cheddar">{filteredLeads.length}</strong> of {activeTab === "automation" ? totalLeadsCount - contactedCount : contactedCount} active
+        <span className="font-mono text-slate-600 font-medium">
+          Records Found: <strong className="text-amber-700">{filteredLeads.length}</strong> of {activeTab === "automation" ? totalLeadsCount - contactedCount : contactedCount} active
         </span>
       </div>
 
       {/* Leads Table */}
-      <div className="overflow-x-auto rounded-xl border border-brand-blue/10 bg-brand-onyx/10">
-        <table className="w-full border-collapse text-left text-xs text-gray-300">
+      <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
+        <table className="w-full border-collapse text-left text-xs text-slate-700">
           <thead>
-            <tr className="bg-brand-blue/10 border-b border-brand-blue/25 text-gray-300 uppercase tracking-wider font-semibold">
+            <tr className="bg-slate-100 border-b border-slate-200 text-slate-700 uppercase tracking-wider font-bold">
               <th className="p-3">Parent Name</th>
               <th className="p-3">Child's Name</th>
               <th className="p-3">Age</th>
@@ -1180,7 +1263,7 @@ export default function LeadExplorer({
               <th className="p-3 text-right">Franchisee Touch Status</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-brand-blue/5">
+          <tbody className="divide-y divide-slate-100">
             {filteredLeads.length > 0 ? (
               filteredLeads.map((item, idx) => {
                 const groupId = item[0] as number;
@@ -1188,56 +1271,91 @@ export default function LeadExplorer({
                 const isContactedByFranchisee = franchiseeContactedKeys.includes(key);
 
                 return (
-                  <tr key={idx} className="hover:bg-brand-blue/10 transition-colors">
-                    <td className="p-3 font-semibold text-white flex items-center gap-1.5">
-                      <User className="h-3.5 w-3.5 text-brand-blue" />
-                      {item[1]}
+                  <tr key={idx} className="hover:bg-slate-50 transition-colors">
+                    <td className="p-3 font-semibold text-slate-900">
+                      <div className="flex items-center gap-1.5">
+                        <User className="h-3.5 w-3.5 text-brand-blue shrink-0" />
+                        <span>{item[1]}</span>
+                      </div>
+                      {item.email && (
+                        <span className="block text-[10px] text-slate-500 font-mono mt-0.5 truncate max-w-[150px]">
+                          {item.email}
+                        </span>
+                      )}
                     </td>
-                    <td className="p-3 text-white font-medium">{item[2]}</td>
-                    <td className="p-3 font-mono font-bold text-brand-cheddar">{item[3]}</td>
-                    <td className="p-3 text-gray-400 max-w-[140px] truncate">{item[4] || "—"}</td>
+                    <td className="p-3 text-slate-900 font-medium">
+                      <div className="flex flex-col">
+                        <div className="flex items-center gap-1.5">
+                          <span>{item[2]}</span>
+                          {(item.isMatchedMember || groupId === 6 || groupId === 7) && (
+                            <span className="px-1.5 py-0.5 rounded text-[9px] font-black bg-amber-50 text-amber-800 border border-amber-200 font-mono flex items-center gap-1">
+                              <Zap className="h-2.5 w-2.5 text-amber-600" />
+                              ★ Paying Member
+                            </span>
+                          )}
+                        </div>
+                        {item.phone && (
+                          <span className="text-[10px] text-slate-500 font-mono mt-0.5">
+                            📞 {item.phone}
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="p-3 font-mono font-bold text-amber-700">{item[3]}</td>
+                    <td className="p-3 text-slate-500 max-w-[140px] truncate">{item[4] || "—"}</td>
                     <td className="p-3">
-                      <div className="flex items-center gap-1 text-gray-400">
-                        <MapPin className="h-3 w-3 text-brand-pink" />
+                      <div className="flex items-center gap-1 text-slate-500">
+                        <MapPin className="h-3 w-3 text-rose-600 shrink-0" />
                         <span>{item[5]}</span>
                       </div>
                     </td>
                     <td className="p-3">
-                      <span className="text-[10px] text-gray-400 bg-brand-onyx/40 px-2 py-0.5 rounded border border-brand-blue/10 block w-max max-w-[170px] truncate">
+                      <span className="text-[10px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded border border-slate-200 block w-max max-w-[170px] truncate">
                         {getGroupName(groupId)}
                       </span>
                     </td>
                     <td className="p-3">
-                      <select
-                        value={getCleanContactMode(String(item[6]))}
-                        onChange={(e) => handleChangeContactMode(String(item[1]), String(item[2]), e.target.value)}
-                        className="bg-[#121320] border border-brand-blue/30 text-white rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-brand-cheddar/50 font-medium"
-                      >
-                        <option value="WhatsApp" className="bg-[#121320]">WhatsApp</option>
-                        <option value="Phone Call" className="bg-[#121320]">Phone Call</option>
-                        <option value="Email" className="bg-[#121320]">Email</option>
-                        <option value="SMS" className="bg-[#121320]">SMS Outreach</option>
-                        <option value="Online Meeting" className="bg-[#121320]">Meeting</option>
-                      </select>
+                      <div className="flex flex-col gap-1">
+                        <select
+                          value={getCleanContactMode(String(item[6]))}
+                          onChange={(e) => handleChangeContactMode(String(item[1]), String(item[2]), e.target.value)}
+                          className="bg-white border border-slate-300 text-slate-900 rounded-lg px-2 py-1 text-xs outline-none cursor-pointer focus:border-brand-blue font-medium"
+                        >
+                          <option value="WhatsApp">WhatsApp</option>
+                          <option value="Phone Call">Phone Call</option>
+                          <option value="Email">Email</option>
+                          <option value="SMS">SMS Outreach</option>
+                          <option value="Online Meeting">Meeting</option>
+                        </select>
+                        <span className="text-[9.5px] font-mono text-blue-700 flex items-center gap-1">
+                          <Mail className="h-2.5 w-2.5 text-brand-blue" />
+                          {item.emailsSent || (item[6] === "Email" ? 1 : 0)} Emails Dispatched
+                        </span>
+                      </div>
                     </td>
                     
                     {/* Last Contacted by Resolute */}
-                    <td className="p-3 font-mono text-gray-400">
-                      <div className="flex items-center gap-1">
-                        <Calendar className="h-3 w-3 text-brand-coral" />
-                        <span>{getLastContactedDate(idx, item[7] as string[])}</span>
+                    <td className="p-3 font-mono text-slate-500">
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1 text-xs">
+                          <Calendar className="h-3 w-3 text-slate-400" />
+                          <span>{getLastContactedDate(idx, item[7] as string[])}</span>
+                        </div>
+                        <span className="text-[9.5px] text-amber-700 font-mono font-bold">
+                          ⚡ {item.touchCount || (isContactedByFranchisee ? 2 : 1)} Total Touches
+                        </span>
                       </div>
                     </td>
 
                     {/* Last Contacted by Franchisee */}
                     <td className="p-3 font-mono">
                       {isContactedByFranchisee ? (
-                        <span className="text-brand-cheddar font-bold flex items-center gap-1 text-[10.5px]">
+                        <span className="text-amber-700 font-bold flex items-center gap-1 text-[10.5px]">
                           <Clock className="h-3 w-3" />
                           2026-06-26
                         </span>
                       ) : (
-                        <span className="text-gray-500 italic text-[10px]">No contact logged</span>
+                        <span className="text-slate-400 italic text-[10px]">No contact logged</span>
                       )}
                     </td>
 
@@ -1246,7 +1364,7 @@ export default function LeadExplorer({
                       {isContactedByFranchisee ? (
                         <button
                           onClick={() => handleMarkAsFranchiseeContacted(String(item[1]), String(item[2]))}
-                          className="bg-brand-cheddar/20 hover:bg-brand-cheddar/30 text-[10px] text-brand-cheddar border border-brand-cheddar/20 hover:scale-105 font-black uppercase tracking-wider px-2.5 py-1 rounded-lg cursor-pointer transition-all"
+                          className="bg-amber-50 hover:bg-amber-100 text-[10px] text-amber-800 border border-amber-200 font-black uppercase tracking-wider px-2.5 py-1 rounded-lg cursor-pointer transition-all"
                           title="Click to revert lead back to Resolute Automation Pool"
                         >
                           ✓ Contacted
@@ -1254,7 +1372,7 @@ export default function LeadExplorer({
                       ) : (
                         <button
                           onClick={() => handleMarkAsFranchiseeContacted(String(item[1]), String(item[2]))}
-                          className="bg-brand-blue/10 hover:bg-brand-blue/30 text-[10px] text-brand-blue border border-brand-blue/20 hover:scale-105 font-black uppercase tracking-wider px-2.5 py-1 rounded-lg cursor-pointer transition-all"
+                          className="bg-blue-50 hover:bg-blue-100 text-[10px] text-brand-blue border border-blue-200 font-black uppercase tracking-wider px-2.5 py-1 rounded-lg cursor-pointer transition-all"
                           title="Move lead to Franchisee contacted segment"
                         >
                           Mark Contacted
@@ -1266,7 +1384,7 @@ export default function LeadExplorer({
               })
             ) : (
               <tr>
-                <td colSpan={10} className="p-8 text-center text-gray-500">
+                <td colSpan={10} className="p-8 text-center text-slate-500">
                   No active records found inside the <strong>{activeTab === "automation" ? "Resolute Automation Pool" : "Internal Franchisee Contacted"}</strong> segment matching your current search/filters.
                 </td>
               </tr>

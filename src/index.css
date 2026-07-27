@@ -17,8 +17,8 @@
 
 @layer base {
   body {
-    background-color: #0F101A;
-    color: #F0F1F5;
+    background-color: #F8FAFC;
+    color: #0F172A;
   }
 }
 
@@ -33,5 +33,38 @@
   }
   to {
     transform: rotate(360deg);
+  }
+}
+
+/* Print CSS for clean Executive Health Report exports */
+@media print {
+  body {
+    background-color: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 11pt;
+  }
+  
+  .no-print {
+    display: none !important;
+  }
+  
+  .print-only {
+    display: block !important;
+  }
+  
+  /* Reset shadows and borders for crisp paper print */
+  .shadow-xl, .shadow-2xl, .shadow-lg, .shadow-md, .shadow-sm {
+    box-shadow: none !important;
+  }
+  
+  /* Ensure page breaks don't chop cards in half */
+  .break-inside-avoid {
+    break-inside: avoid;
+  }
+
+  /* Force background colors to show in print */
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
 }
